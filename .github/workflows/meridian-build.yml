@@ -39,3 +39,5 @@ jobs:
           path: pokeemerald.gba
           if-no-files-found: error
           retention-days: 14
+
+# Builds the pinned source committed to the develop branch.
