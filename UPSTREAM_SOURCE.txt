@@ -1,0 +1,2 @@
+Upstream: https://github.com/rh-hideout/pokeemerald-expansion
+Imported commit: be3b089fc121143b7ccf6503ea1385b8abe05b8c
