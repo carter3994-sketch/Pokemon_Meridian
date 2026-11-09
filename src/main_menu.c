@@ -1294,6 +1294,16 @@ static void HighlightSelectedMainMenuItem(enum PartyMenuType menuType, u8 select
 #define tBrendanSpriteId data[10]
 #define tMaySpriteId data[11]
 
+// First Meridian story text is intentionally placed after character creation.
+static const u8 sText_MeridianExpeditionPrologue[] = _(
+    "Johto is fading. Our expedition\\n"
+    "sails toward a distant shore.\\p"
+    "The refugees call it MERIDIAN.\\n"
+    "Its people call it AEVOR.\\p"
+    "We are visitors here, {PLAYER}.\\n"
+    "Remember that."
+);
+
 static void Task_NewGameBirchSpeech_Init(u8 taskId)
 {
     SetGpuReg(REG_OFFSET_DISPCNT, 0);
@@ -1367,9 +1377,18 @@ static void Task_NewGameBirchSpeech_WaitForSpriteFadeInWelcome(u8 taskId)
             PutWindowTilemap(0);
             CopyWindowToVram(0, COPYWIN_GFX);
             NewGameBirchSpeech_ClearWindow(0);
-            StringExpandPlaceholders(gStringVar4, gText_Birch_Welcome);
-            AddTextPrinterForMessage(TRUE);
-            gTasks[taskId].func = Task_NewGameBirchSpeech_ThisIsAPokemon;
+            // Meridian: begin with player creation, not the expedition story.
+            // Legacy intro is retained behind an unreachable debug state.
+            if (gTasks[taskId].data[3] == 0)
+            {
+                StringExpandPlaceholders(gStringVar4, gText_Birch_Welcome);
+                AddTextPrinterForMessage(TRUE);
+                gTasks[taskId].func = Task_NewGameBirchSpeech_ThisIsAPokemon;
+            }
+            else
+            {
+                gTasks[taskId].func = Task_NewGameBirchSpeech_StartBirchLotadPlatformFade;
+            }
         }
     }
 }
@@ -1709,7 +1728,8 @@ static void Task_NewGameBirchSpeech_ReshowBirchLotad(u8 taskId)
         NewGameBirchSpeech_StartFadeInTarget1OutTarget2(taskId, 2);
         NewGameBirchSpeech_StartFadePlatformOut(taskId, 1);
         NewGameBirchSpeech_ClearWindow(0);
-        StringExpandPlaceholders(gStringVar4, gText_Birch_YourePlayer);
+        // The expedition prologue begins after the player confirms their name.
+        StringExpandPlaceholders(gStringVar4, sText_MeridianExpeditionPrologue);
         AddTextPrinterForMessage(TRUE);
         gTasks[taskId].func = Task_NewGameBirchSpeech_WaitForSpriteFadeInAndTextPrinter;
     }
