@@ -1,0 +1,44 @@
+name: Import upstream engine into develop
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-engine.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Meridian develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          persist-credentials: true
+      - name: Verify clean bootstrap repository
+        run: |
+          test ! -f Makefile || { echo "Engine source already present; refusing to overwrite"; exit 1; }
+      - name: Fetch upstream source
+        run: git clone --depth 1 --branch master https://github.com/rh-hideout/pokeemerald-expansion.git /tmp/meridian-upstream
+      - name: Record upstream revision
+        run: |
+          git -C /tmp/meridian-upstream rev-parse HEAD > UPSTREAM_COMMIT
+          printf 'Upstream: https://github.com/rh-hideout/pokeemerald-expansion\nImported commit: %s\n' "$(cat UPSTREAM_COMMIT)" > UPSTREAM_SOURCE.txt
+      - name: Import source without overwriting Meridian documents or workflows
+        run: |
+          rsync -a --exclude='.git/' --exclude='.github/' --exclude='README.md' /tmp/meridian-upstream/ ./
+          test -f Makefile
+          test -f INSTALL.md
+      - name: Commit engine source to develop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "Nothing to import"; exit 0; }
+          git commit -m "Import pinned RHH pokeemerald-expansion engine source"
+          git push origin HEAD:develop
