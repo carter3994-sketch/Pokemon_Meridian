@@ -1,0 +1,41 @@
+name: Meridian source build
+
+on:
+  push:
+    branches: [develop, main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify project engine is committed
+        run: |
+          test -f Makefile
+          test -f UPSTREAM_COMMIT
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
+      - name: Compile Meridian repository source
+        env:
+          GAME_VERSION: EMERALD
+          GAME_LANGUAGE: ENGLISH
+          COMPARE: '0'
+        run: make -j2
+      - name: Upload compiled GBA
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-development-gba
+          path: pokeemerald.gba
+          if-no-files-found: error
+          retention-days: 14
