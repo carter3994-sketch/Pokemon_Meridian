@@ -1,0 +1,40 @@
+name: Baseline GBA engine build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/baseline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout upstream pokeemerald-expansion
+        uses: actions/checkout@v4
+        with:
+          repository: rh-hideout/pokeemerald-expansion
+          ref: master
+          persist-credentials: false
+      - name: Install GBA build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
+      - name: Compile baseline
+        env:
+          GAME_VERSION: EMERALD
+          GAME_LANGUAGE: ENGLISH
+          COMPARE: '0'
+        run: make -j2
+      - name: Upload compiled ROM
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-baseline-gba
+          path: pokeemerald.gba
+          if-no-files-found: error
+          retention-days: 14
