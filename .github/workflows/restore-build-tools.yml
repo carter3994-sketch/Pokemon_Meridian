@@ -1,0 +1,34 @@
+name: Restore required compression tool sources
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/restore-build-tools.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          persist-credentials: true
+      - name: Retrieve pinned upstream tools
+        run: |
+          SHA="$(cat UPSTREAM_COMMIT)"
+          git clone --filter=blob:none --no-checkout https://github.com/rh-hideout/pokeemerald-expansion.git /tmp/meridian-upstream
+          git -C /tmp/meridian-upstream fetch --depth 1 origin "$SHA"
+          git -C /tmp/meridian-upstream checkout --detach FETCH_HEAD
+          mkdir -p tools/compresSmol
+          cp -a /tmp/meridian-upstream/tools/compresSmol/. tools/compresSmol/
+      - name: Force-track required tool source and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f tools/compresSmol/
+          git diff --cached --quiet && exit 0
+          git commit -m "Track required compresSmol tool sources"
+          git fetch origin develop
+          git rebase origin/develop
+          git push origin HEAD:develop
