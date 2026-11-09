@@ -1296,11 +1296,11 @@ static void HighlightSelectedMainMenuItem(enum PartyMenuType menuType, u8 select
 
 // First Meridian story text is intentionally placed after character creation.
 static const u8 sText_MeridianExpeditionPrologue[] = _(
-    "Johto is fading. Our expedition\\n"
-    "sails toward a distant shore.\\p"
-    "The refugees call it MERIDIAN.\\n"
-    "Its people call it AEVOR.\\p"
-    "We are visitors here, {PLAYER}.\\n"
+    "Johto is fading. Our expedition\n"
+    "sails toward a distant shore.\p"
+    "The refugees call it MERIDIAN.\n"
+    "Its people call it AEVOR.\p"
+    "We are visitors here, {PLAYER}.\n"
     "Remember that."
 );
 
