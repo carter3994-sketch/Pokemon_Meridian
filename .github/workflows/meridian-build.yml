@@ -41,3 +41,4 @@ jobs:
           retention-days: 14
 
 # Builds the pinned source committed to the develop branch.
+# Verification after restoring upstream compresSmol source.
