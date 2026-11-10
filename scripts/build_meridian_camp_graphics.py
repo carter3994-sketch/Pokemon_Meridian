@@ -181,4 +181,29 @@ for y in range(H):
     for x in range(W):
         preview.paste(ART[grid[y][x]].convert("RGB"),(x*16,y*16))
 preview.save(OUT/"camp_48x40_art_direction_preview.png")
+# Export the same authored cells to Tiled, the widely used map editor.
+# Tiled IDs are 1-based; this TMX is a review/editing asset, NOT GBA map.bin.
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
+collision = json.loads((ROOT / "data/meridian_plans/landing_camp_collision_draft.json").read_text())
+assert len(collision["rows"]) == H and all(len(row) == W for row in collision["rows"])
+tmx = ET.Element("map", {
+    "version":"1.10","tiledversion":"1.11.2","orientation":"orthogonal",
+    "renderorder":"right-down","width":str(W),"height":str(H),
+    "tilewidth":"16","tileheight":"16","infinite":"0",
+    "nextlayerid":"3","nextobjectid":"1"
+})
+tileset = ET.SubElement(tmx,"tileset",{"firstgid":"1","name":"MeridianCampOriginal",
+    "tilewidth":"16","tileheight":"16","tilecount":str(len(names)),"columns":"8"})
+ET.SubElement(tileset,"image",{"source":"camp_original_metatiles_indexed.png",
+    "width":str(atlas.width),"height":str(atlas.height)})
+def csv_layer(layer_id,name,values):
+    layer=ET.SubElement(tmx,"layer",{"id":str(layer_id),"name":name,
+        "width":str(W),"height":str(H)})
+    data=ET.SubElement(layer,"data",{"encoding":"csv"})
+    data.text="\\n"+",\\n".join(",".join(str(values[y*W+x]) for x in range(W)) for y in range(H))+"\\n"
+csv_layer(1,"Artwork",[names.index(grid[y][x])+1 for y in range(H) for x in range(W)])
+csv_layer(2,"Collision reference (1=blocked)",[int(collision["rows"][y][x]) for y in range(H) for x in range(W)])
+(OUT/"camp_48x40_editable.tmx").write_bytes(minidom.parseString(ET.tostring(tmx)).toprettyxml(indent="  ",encoding="utf-8"))
+
 print(f"Generated {len(names)} original indexed metatiles and {W}x{H} art preview in {OUT}")
