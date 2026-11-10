@@ -1,0 +1,43 @@
+name: Meridian Landing Camp Art Preview
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/meridian-landing-camp-art.yml'
+      - 'tools/generate_landing_camp_tiles.py'
+permissions:
+  contents: read
+jobs:
+  render-art:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install image tools
+        run: python3 -m pip install Pillow
+      - name: Generate art and validate dimensions
+        run: |
+          python3 tools/generate_landing_camp_tiles.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from PIL import Image
+          root = Path("build/landing_camp_art")
+          image = Image.open(root / "terrain_study.png")
+          report = json.loads((root / "manifest.json").read_text())
+          assert image.size == (128, 96), image.size
+          assert len(report["tiles"]) == 48
+          assert report["palette_colors"] <= 16, (
+              f"Atlas uses {report['palette_colors']} colors; "
+              "GBA palette budget exceeded"
+          )
+          print("Preview dimensions and palette budget verified")
+          PY
+      - name: Upload artwork preview and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: landing-camp-art-preview
+          path: build/landing_camp_art/
+          if-no-files-found: error
