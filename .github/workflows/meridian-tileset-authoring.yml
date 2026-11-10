@@ -1,0 +1,59 @@
+name: Meridian Tileset Authoring Tools
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authoring-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install image tooling
+        run: python3 -m pip install --user Pillow
+      - name: Obtain Porytiles release for Linux
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,zipfile,io,os,pathlib
+          api="https://api.github.com/repos/grunt-lucas/porytiles/releases/latest"
+          req=urllib.request.Request(api,headers={"User-Agent":"Meridian-Tileset-Authoring","Accept":"application/vnd.github+json"})
+          release=json.load(urllib.request.urlopen(req,timeout=45))
+          assets=release["assets"]
+          matches=[a for a in assets if "linux" in a["name"].lower() and a["name"].lower().endswith(".zip") and "arm" not in a["name"].lower()]
+          if not matches: raise SystemExit("No compatible Linux Porytiles release ZIP; inspect release assets before proceeding")
+          asset=matches[0]
+          print("Installing",release["tag_name"],asset["name"])
+          req=urllib.request.Request(asset["browser_download_url"],headers={"User-Agent":"Meridian-Tileset-Authoring"})
+          payload=urllib.request.urlopen(req,timeout=90).read()
+          root=pathlib.Path("build/meridian_authoring_tools/porytiles")
+          root.mkdir(parents=True,exist_ok=True)
+          with zipfile.ZipFile(io.BytesIO(payload)) as z:
+              for item in z.infolist():
+                  p=pathlib.PurePosixPath(item.filename)
+                  if p.is_absolute() or ".." in p.parts: raise SystemExit("Unsafe archive path")
+              z.extractall(root)
+          executables=list(root.rglob("porytiles"))
+          if not executables: raise SystemExit("Release archive missing porytiles executable")
+          exe=executables[0]
+          exe.chmod(exe.stat().st_mode|0o111)
+          pathlib.Path("build/meridian_authoring_tools/porytiles_path.txt").write_text(str(exe))
+          pathlib.Path("build/meridian_authoring_tools/version.json").write_text(json.dumps({"version":release["tag_name"],"asset":asset["name"]},indent=2))
+          PY
+      - name: Verify Porytiles executable
+        run: |
+          BIN="$(cat build/meridian_authoring_tools/porytiles_path.txt)"
+          "$BIN" --help > build/meridian_authoring_tools/porytiles_help.txt
+          test -s build/meridian_authoring_tools/porytiles_help.txt
+      - name: Stage editable tileset authoring references
+        run: |
+          python3 scripts/stage_meridian_shady_forest_tileset.py
+          python3 scripts/register_meridian_shady_forest_tileset.py
+          python3 scripts/export_meridian_tileset_authoring_atlas.py
+      - name: Upload authoring package
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-tileset-authoring-toolkit
+          path: |
+            build/meridian_authoring_tools/
+            build/meridian_shady_forest_staging/credits.md
+          if-no-files-found: error
+          retention-days: 14
