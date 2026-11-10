@@ -32,7 +32,7 @@ gids=cells(layers[0])
 collision=cells(layers[1])
 assert all(1<=g<=len(names) for g in gids)
 assert all(v in (0,1) for v in collision)
-assert len(names)==(atlas.width//16)*(atlas.height//16)
+assert 0<len(names)<=(atlas.width//16)*(atlas.height//16), "Atlas may have padding in its last row"
 # Build 512 unique 8x8 tiles maximum, padding with transparent tile 0.
 tile_cache={}
 tiles=[]
