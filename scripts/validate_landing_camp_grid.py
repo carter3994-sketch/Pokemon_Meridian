@@ -51,3 +51,24 @@ for name, (x, y) in targets.items():
     if grid[y][x] != expected:
         raise SystemExit(f"Wrong landmark at {name} ({x},{y}): {grid[y][x]}")
 print(f"Landing Camp grid validated: 48x40, {len(targets)} reachable landmarks, {len(visited)} connected cells")
+
+# Story-gated optional exits must not prevent reaching core services or Route 1.
+# Removing a gate cell models a closed entrance; it does not model GBA scripts.
+gated = {(44, 10), (31, 4), (23, 0)}
+queue = deque([start])
+without_gates = {start}
+while queue:
+    x, y = queue.popleft()
+    for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        nx, ny = x + dx, y + dy
+        pos = (nx, ny)
+        if (0 <= nx < 48 and 0 <= ny < 40
+                and pos not in gated and grid[ny][nx] in walkable
+                and pos not in without_gates):
+            without_gates.add(pos)
+            queue.append(pos)
+required_open = ("medical", "lab", "HQ", "supply", "quarters", "forest", "coast")
+for name in required_open:
+    if targets[name] not in without_gates:
+        raise SystemExit(f"Story gate blocks essential route: {name}")
+print(f"Closed-gate check passed: {len(required_open)} essential destinations accessible")
