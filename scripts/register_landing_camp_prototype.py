@@ -44,4 +44,13 @@ map_dir.mkdir(parents=True, exist_ok=False)
 (map_dir / "scripts.inc").write_text("MeridianLandingCampPrototype_MapScripts::\n    .byte 0\n")
 groups["gMapGroup_TownsAndRoutes"].append(area["name"])
 group_path.write_text(json.dumps(groups, indent=2) + "\n")
-print("Registered isolated prototype in disposable checkout; no entry point or gameplay warps")
+# Redirect only the disposable debug ROM's non-FRLG new-game spawn.
+# This does not touch the checked-in game startup flow.
+new_game_path = root / "src/new_game.c"
+new_game = new_game_path.read_text()
+original = "SetWarpDestination(MAP_GROUP(MAP_INSIDE_OF_TRUCK), MAP_NUM(MAP_INSIDE_OF_TRUCK), WARP_ID_NONE, -1, -1);"
+replacement = "SetWarpDestination(MAP_GROUP(MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE), MAP_NUM(MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE), WARP_ID_NONE, 12, 23);"
+if new_game.count(original) != 1:
+    raise SystemExit("Could not safely locate unique default new-game warp")
+new_game_path.write_text(new_game.replace(original, replacement))
+print("Registered debug map and temporary new-game entrance in disposable checkout")
