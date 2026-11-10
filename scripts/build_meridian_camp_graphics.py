@@ -126,6 +126,15 @@ sd.polygon([(58,10),(88,36),(58,36)],fill=5)
 sd.line((18,36,88,36),fill=8,width=2)
 sd.line((54,3,54,40),fill=8)
 sd.polygon([(57,3),(74,7),(57,11)],fill=14)
+# Open-water ship cells need actual water movement rather than a flat fill.
+for sy in range(4):
+    for sx in range(7):
+        region=ship.crop((sx*16,sy*16,sx*16+16,sy*16+16))
+        if len(set(region.getdata()))==1:
+            px=sx*16+3+((sx*3+sy)%6)
+            py=sy*16+5+((sx+sy*2)%6)
+            sd.line((px,py,px+5,py),fill=11)
+            sd.point((px+2,py+2),fill=15)
 for qy in range(4):
     for qx in range(7):
         ART[f"vessel_{qx}_{qy}"]=ship.crop((qx*16,qy*16,qx*16+16,qy*16+16))
@@ -352,6 +361,7 @@ VARIANT_MATERIALS = {
     "grass", "grass_dark", "water", "cliff", "roof", "roof_edge",
     "path", "path_edge_top", "path_edge_bottom",
     "path_edge_left", "path_edge_right", "dock",
+    "ruins", "cave", "cliff_ledge", "cliff_moss", "shore_east",
 }
 for base in sorted(VARIANT_MATERIALS):
     if base not in ART: continue
