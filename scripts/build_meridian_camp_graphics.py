@@ -146,6 +146,29 @@ tile("cliff_moss", 12, lambda d: (d.polygon([(0,0),(7,0),(10,3),(6,6),(0,4)],fil
 tile("falls_top", 10, lambda d: (d.rectangle((2,0,13,15),fill=11),d.line((4,2,4,15),fill=15),d.line((10,0,9,15),fill=15)))
 tile("falls_middle", 10, lambda d: (d.rectangle((2,0,13,15),fill=11),d.line((5,0,4,15),fill=15),d.line((10,0,11,15),fill=15)))
 tile("falls_bottom", 10, lambda d: (d.rectangle((2,0,13,10),fill=11),d.line((5,0,4,10),fill=15),d.ellipse((0,8,15,15),fill=15),d.line((0,14,15,14),fill=11)))
+# 3x3 irregular canopy pieces for the deep forest. Individual quadrants share
+# a single master drawing so seams cannot split between adjacent tiles.
+for bloom in (False, True):
+    prefix="ancient_blossom" if bloom else "ancient_forest"
+    crown=Image.new("P",(48,48),1)
+    crown.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
+    d=ImageDraw.Draw(crown)
+    d.rectangle((21,30,28,47),fill=6)
+    d.line((23,31,23,47),fill=8,width=2)
+    base=14 if bloom else 2
+    light=15 if bloom else 3
+    shade=7 if bloom else 1
+    for bbox in ((3,16,27,38),(18,8,44,34),(7,3,32,28),(19,20,46,42)):
+        d.ellipse(bbox,fill=shade)
+    for bbox in ((4,12,29,34),(18,6,43,31),(9,2,32,26),(19,17,44,39)):
+        d.ellipse(bbox,fill=base)
+    for bbox in ((8,10,18,18),(23,9,33,17),(15,21,27,29),(29,24,39,31)):
+        d.ellipse(bbox,fill=light)
+    for xx,yy in ((5,26),(12,5),(30,4),(42,24),(23,38),(37,13)):
+        d.rectangle((xx,yy,xx+2,yy+2),fill=light)
+    for qy in range(3):
+        for qx in range(3):
+            ART[f"{prefix}_{qx}_{qy}"]=crown.crop((qx*16,qy*16,qx*16+16,qy*16+16))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
@@ -246,6 +269,15 @@ for y in range(1,H-2,3):
             for qy in range(2):
                 for qx in range(2):
                     grid[y+qy][x+qx] = f"{prefix}_crown_{qx}_{qy}"
+# Replace repetitive 2x2 circular crowns with large irregular 3x3 trees
+# wherever the forest has a fully contiguous footprint.
+for y in range(0,H-2,4):
+    for x in range(0,W-2,4):
+        if all(PLAN["rows"][yy][xx]=="T" for yy in range(y,y+3) for xx in range(x,x+3)):
+            prefix="ancient_blossom" if (x*7+y)%13==0 else "ancient_forest"
+            for qy in range(3):
+                for qx in range(3):
+                    grid[y+qy][x+qx]=f"{prefix}_{qx}_{qy}"
 # Give cliff boundaries a distinct lip instead of a solid cliff texture.
 for y in range(H):
     for x in range(W):
