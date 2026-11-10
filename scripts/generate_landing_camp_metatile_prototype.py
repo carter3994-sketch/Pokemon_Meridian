@@ -43,6 +43,14 @@ zone_words = {
 if any(len(row) != width or any(ch not in zone_words for ch in row) for row in plan["rows"]):
     raise SystemExit("Invalid zone codes or row lengths")
 base = zone_words["."]
+primary_count = (root / "data/tilesets/primary/general/metatiles.bin").stat().st_size // 16
+secondary_count = (root / "data/tilesets/secondary/petalburg/metatiles.bin").stat().st_size // 16
+if primary_count != 512:
+    raise SystemExit(f"Unexpected primary metatile count: {primary_count}")
+for code, tile_id in zone_words.items():
+    if not (0 <= tile_id < primary_count or 512 <= tile_id < 512 + secondary_count):
+        raise SystemExit(f"Invalid metatile for zone {code}: {tile_id}")
+
 # Encode actual GBA map-grid collision bits from the draft mask.
 # Metatile ID: bits 0-9; collision: bits 10-11; elevation: bits 12-15.
 if len(collision["rows"]) != height or any(len(row) != width for row in collision["rows"]):
