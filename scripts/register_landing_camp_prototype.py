@@ -146,8 +146,30 @@ for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interio
         "dest_map": interior_id, "dest_warp_id": "0",
     })
 (layouts_path).write_text(json.dumps(registry, indent=2) + "\n")
-if len(area["warp_events"]) != 5:
+# Validate both directions of every building warp before attempting a ROM build.
+if len(area["warp_events"]) != len(interiors):
     raise SystemExit("Expected five paired building entrances")
+for index, (label, landmark, _, exit_a, exit_b) in enumerate(interiors):
+    x, y = landmarks[landmark]
+    outdoor = area["warp_events"][index]
+    indoor_name = "MeridianLandingCamp" + label
+    indoor = json.loads((maps / indoor_name / "map.json").read_text())
+    if (outdoor["x"], outdoor["y"]) != (x, y):
+        raise SystemExit(f"{label}: exterior entrance moved")
+    if outdoor["dest_map"] != indoor["id"] or outdoor["dest_warp_id"] != "0":
+        raise SystemExit(f"{label}: exterior warp target mismatch")
+    if len(indoor["warp_events"]) != 2:
+        raise SystemExit(f"{label}: expected two exit tiles")
+    if {(w["x"], w["y"]) for w in indoor["warp_events"]} != {exit_a, exit_b}:
+        raise SystemExit(f"{label}: interior exit coordinates mismatch")
+    if any(w["dest_map"] != area["id"] or w["dest_warp_id"] != str(index)
+           for w in indoor["warp_events"]):
+        raise SystemExit(f"{label}: return warp mismatch")
+    indoor_layout = next(item for item in registry["layouts"] if item["id"] == indoor["layout"])
+    for w in indoor["warp_events"]:
+        if not (0 <= w["x"] < indoor_layout["width"] and 0 <= w["y"] < indoor_layout["height"]):
+            raise SystemExit(f"{label}: exit outside interior layout")
+print("Verified five bidirectional building warps and interior exit bounds")
 (map_dir / "map.json").write_text(json.dumps(area, indent=2) + "\n")
 (map_dir / "scripts.inc").write_text("""MeridianLandingCampPrototype_MapScripts::
     .byte 0
