@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/meridian-landing-camp-art.yml'
       - 'tools/generate_landing_camp_tiles.py'
+      - 'tools/refine_landing_camp_scene.py'
 permissions:
   contents: read
 jobs:
@@ -19,6 +20,7 @@ jobs:
       - name: Generate art and validate dimensions
         run: |
           python3 tools/generate_landing_camp_tiles.py
+          python3 tools/refine_landing_camp_scene.py
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -32,7 +34,13 @@ jobs:
               f"Atlas uses {report['palette_colors']} colors; "
               "GBA palette budget exceeded"
           )
-          print("Preview dimensions and palette budget verified")
+          quality = Image.open(root / "camp_scene_quality_v2.png")
+          quality_report = json.loads((root / "scene_quality_manifest.json").read_text())
+          assert quality.size == (480, 320), quality.size
+          assert quality_report["colors"] <= 16
+          assert sum(x["type"] == "tent" for x in quality_report["features"]) >= 3
+          assert sum(x["type"] == "pine" for x in quality_report["features"]) >= 8
+          print("Terrain and multi-tile scene preview dimensions and palette verified")
           PY
       - name: Upload artwork preview and manifest
         if: always()
