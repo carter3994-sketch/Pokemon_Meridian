@@ -99,6 +99,36 @@ tile("foam", 10, lambda d: ([d.line((x,y,x+4,y),fill=15) for x,y in ((2,4),(9,10
 tile("ship_cabin", 6, lambda d: (d.rectangle((1,2,14,15),fill=7),d.rectangle((4,5,11,10),fill=11),d.line((0,1,15,1),fill=8)))
 tile("ship_pennant", 10, lambda d: (d.line((7,0,7,15),fill=6),d.polygon([(8,1),(15,4),(8,7)],fill=14)))
 tile("ship_keel", 10, lambda d: (d.polygon([(0,1),(15,1),(11,12),(4,12)],fill=12),d.line((2,4,13,4),fill=8)))
+# Ship is drawn as ONE 7x4 metatile silhouette, then cut into aligned tiles.
+# This avoids the repeated hull-strip pattern visible in the November QA preview.
+ship = Image.new("P",(112,64),10)
+ship.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
+sd=ImageDraw.Draw(ship)
+# Reflected water / wake.
+sd.arc((0,43,111,61),0,180,fill=11,width=2)
+sd.line((7,55,29,57),fill=15,width=2)
+sd.line((84,57,106,54),fill=15,width=2)
+# Single continuous hull with curved bow and stern.
+sd.polygon([(4,40),(103,40),(95,55),(24,57),(11,51)],fill=6)
+sd.line((5,40,103,40,95,55,24,57,11,51,5,40),fill=8,width=2)
+sd.line((16,48,94,48),fill=7,width=2)
+for xx in (26,42,58,74,90):
+    sd.ellipse((xx,44,xx+3,47),fill=12)
+# Deck and cabin.
+sd.rectangle((22,33,90,40),fill=7)
+sd.rectangle((68,24,87,34),fill=6)
+sd.rectangle((72,27,83,32),fill=11)
+sd.line((67,23,88,23),fill=8,width=2)
+# Main mast and triangular sails.
+sd.rectangle((53,3,56,40),fill=6)
+sd.polygon([(52,6),(17,36),(52,36)],fill=15)
+sd.polygon([(58,10),(88,36),(58,36)],fill=5)
+sd.line((18,36,88,36),fill=8,width=2)
+sd.line((54,3,54,40),fill=8)
+sd.polygon([(57,3),(74,7),(57,11)],fill=14)
+for qy in range(4):
+    for qx in range(7):
+        ART[f"vessel_{qx}_{qy}"]=ship.crop((qx*16,qy*16,qx*16+16,qy*16+16))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
@@ -197,32 +227,13 @@ for y in range(H):
 for x,y in ((10,25),(22,26),(27,24)):
     if PLAN["rows"][y][x] in ".=":
         grid[y][x]="tent_roof"
-# Representative ship silhouette on water west of the camp arrival.
-for x in range(2,9):
-    for y in range(17,20):
+# Place complete ship silhouette on the existing water area without altering
+# gameplay collision, warp points or the source layout.
+for qy in range(4):
+    for qx in range(7):
+        x,y=2+qx,16+qy
         if PLAN["rows"][y][x]=="~":
-            grid[y][x] = "ship_deck" if y==17 else "ship_hull"
-# Make the hull terminate in dedicated bow/stern tiles, not repeating rectangles.
-for y in range(17,20):
-    for x,graphic in ((2,"ship_stern"),(8,"ship_bow")):
-        if PLAN["rows"][y][x]=="~":
-            grid[y][x]=graphic
-# Dedicated dock wood textures and mooring fixtures.
-for y,row in enumerate(PLAN["rows"]):
-    for x,ch in enumerate(row):
-        if ch=="D":
-            grid[y][x]="dock_plank"
-            if x>0 and PLAN["rows"][y][x-1]!="D":
-                grid[y][x]="dock_post"
-            elif x+1<W and PLAN["rows"][y][x+1]!="D":
-                grid[y][x]="dock_rope"
-# The ship's cabin and pennant are separate pieces from its hull.
-for x,y,graphic in ((4,17,"ship_cabin"),(5,17,"ship_cabin"),(5,16,"ship_pennant")):
-    if PLAN["rows"][y][x]=="~":
-        grid[y][x]=graphic
-# Add a mast and a small ship silhouette without modifying collision.
-for x,y in ((4,16),(5,16),(6,16)):
-    if PLAN["rows"][y][x]=="~": grid[y][x]="ship_sail"
+            grid[y][x]=f"vessel_{qx}_{qy}"
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
