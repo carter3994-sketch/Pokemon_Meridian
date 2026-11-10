@@ -17,6 +17,11 @@ words = struct.unpack(f"<{w*h}H", (ROOT / "data/layouts/MeridianLandingCampProto
 bank = ROOT / "data/tilesets/secondary/meridian_shady_forest"
 attrs = struct.unpack("<512H", (bank / "metatile_attributes.bin").read_bytes())
 metas = struct.unpack("<4096H", (bank / "metatiles.bin").read_bytes())
+# Emerald indexes secondary palettes at [NUM_PALS_IN_PRIMARY], so the
+# C array must include all sixteen slots, including the first six.
+graphics = (ROOT / "src/data/tilesets/graphics.h").read_text()
+palette_array = graphics.split("gTilesetPalettes_MeridianShadyForest[][16]", 1)[1].split("};", 1)[0]
+assert palette_array.count("INCGFX_U16(") == 16, "Secondary palette table must contain 16 slots"
 raw = (bank / "tiles.4bpp").read_bytes()
 assert len(raw) == 16384 and raw[:32] == bytes(32)
 for word in words:

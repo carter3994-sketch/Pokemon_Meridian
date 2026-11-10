@@ -51,7 +51,8 @@ g = graphics.read_text()
 marker = "#if !IS_FRLG"
 assert marker in g and "gTilesetTiles_MeridianShadyForest" not in g
 insert = ('const u32 gTilesetTiles_MeridianShadyForest[] = INCGFX_U32("'+base+'tiles.png", ".4bpp.fastSmol", "-num_tiles 512 -Wnum_tiles");\n'
-          'const u16 gTilesetPalettes_MeridianShadyForest[][16] =\n{\n'
+          'const u16 ALIGNED(4) gTilesetPalettes_MeridianShadyForest[][16] =\n{\n'
+          + "".join('    INCGFX_U16("data/tilesets/primary/general/'+f'palettes/{i:02d}.pal", ".gbapal"),\n' for i in range(6))
           + "".join('    INCGFX_U16("'+base+f'palettes/{i:02d}.pal", ".gbapal"),\n' for i in range(6,16))
           + '};\n\n')
 graphics.write_text(g.replace(marker, marker+"\n\n"+insert,1))

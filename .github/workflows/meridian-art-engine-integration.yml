@@ -5,6 +5,7 @@ on:
     branches: [develop]
     paths:
       - 'graphics/meridian/landing_camp/**'
+      - 'scripts/register_meridian_shady_forest_tileset.py'
       - 'scripts/validate_meridian_camp_engine_assets.py'
       - 'scripts/integrate_meridian_original_camp_art.py'
       - 'scripts/build_meridian_camp_graphics.py'
