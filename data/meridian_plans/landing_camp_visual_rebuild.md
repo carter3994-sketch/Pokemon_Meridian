@@ -5,6 +5,20 @@ Status: VISUAL QA FAILED. The November 9 Delta recording is the acceptance basel
 ## Approved composition to preserve
 48 x 40 metatile arrival map, including large expedition HQ, separate research and medical buildings, supply and living quarters, a separate Provision Store, a ship and dock, campfire plaza, tent market, waterfalls, dramatic cliffs, forests with pink flowering trees, ancient ruins, cave, northern trail and coastal/forest exits. Phase 1 arrival must leave room for camp growth in later phases.
 
+Use the user-supplied **Expedition Landing Camp – Aevor / Playable Map Layout (v1.0)** board as the visual reference. The middle illustrated panel defines the landmark relationships below. Its perspective and labels are guide material. Exact tile positions and building door alignment need review against the next engine tile render.
+
+| Region | Composition to match |
+| --- | --- |
+| Southwest waterfront | A broad, modern expedition ship moored below the camp cliffs. Its timber dock runs east to the south approach. |
+| Central settlement | The largest structure is the blue-bannered metal HQ. Its entrance faces the circular stone fire plaza directly south. Keep the plaza legible on the approach from the dock and Route 1. |
+| West of HQ | The research lab sits north of the medical center. Each has a distinct facade and entrance. Stairs between this cluster and HQ make the change in elevation visible. |
+| East of HQ | The supply depot faces the plaza approach. The canvas living quarters form a fenced cluster southeast of it. |
+| Northern terrace | Ruins occupy the northwest shelf. A stair leads toward the northern trail behind HQ. Scaffolding and the waterfall occupy the upper east, with the cave mouth farther east. |
+| Southern and eastern exits | Route 1 leaves from the south near the dock junction. The coastal path follows the southeast cliffs around the quarters toward the cave branch. |
+| Environment | Layered cliffs, dense forest with pink flowering accents, rocky blue surf, slate metal roofs, warm windows, and blue-and-gold expedition banners distinguish the camp from its surroundings. |
+
+The checked-in V03 navigation sketch places the ruins east of center, splits the medical center and lab along one row, and sets the dock midway up a mostly straight western shoreline. Its generated art preview uses a sailboat and near-identical building silhouettes. The separate 30 x 20 terrain study has three tents and contains none of the main settlement landmarks. Use these renders as evidence of the gaps. Anchor the next layout and custom tileset to the board before changing the debug map or remapping the warps.
+
 ## Root cause
 The current map generator assigns ONE metatile to each zone letter. A single wall or foliage metatile cannot render an entire building, tree, cliff face, ship or shore. The 2026-11-09 Delta review shows repeated roof/fence-like textures and discontinuous terrain. Changing the numeric ID for a zone is not a solution.
 
