@@ -37,6 +37,11 @@ for label, rel in SETS:
             raise ValueError(f"Unexpected palette format: {palette_path}")
         return [tuple(map(int, line.split())) for line in lines[3:19]]
     palettes = [palette_for(i) for i in range(16)]
+    primary_image = Image.open(ROOT / "data/tilesets/primary/general/tiles.png")
+    if primary_image.mode != "P":
+        raise ValueError("Primary tileset must be indexed")
+    # Secondary metatiles can reference the primary tile bank as well.
+    # Tile indices 0..511 use the primary image; 512+ use secondary.
     raw = (folder / "metatiles.bin").read_bytes()
     if len(raw) % 16:
         raise ValueError(f"Invalid metatile length for {rel}")
@@ -55,10 +60,13 @@ for label, rel in SETS:
             for quadrant in range(4):
                 word = entries[layer * 4 + quadrant]
                 tile_id = word & 0x03FF
-                tx, ty = (tile_id % tiles_per_row) * 8, (tile_id // tiles_per_row) * 8
-                if ty + 8 > src.height:
-                    continue
-                indices = src.crop((tx, ty, tx + 8, ty + 8))
+                source = primary_image if tile_id < 512 else src
+                local_id = tile_id if tile_id < 512 else tile_id - 512
+                source_columns = source.width // 8
+                tx, ty = (local_id % source_columns) * 8, (local_id // source_columns) * 8
+                if ty + 8 > source.height:
+                    raise ValueError(f"Tile {tile_id} outside {label} image")
+                indices = source.crop((tx, ty, tx + 8, ty + 8))
                 palette = palettes[(word >> 12) & 15]
                 patch = Image.new("RGBA", (8, 8))
                 patch.putdata([(*palette[pixel & 15], 0 if layer == 1 and (pixel & 15) == 0 else 255) for pixel in indices.getdata()])
