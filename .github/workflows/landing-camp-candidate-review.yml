@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/audit_meridian_candidate_tileset.py'
       - 'scripts/audit_meridian_terrain_roles.py'
+      - 'scripts/audit_meridian_gen3_candidate_binaries.py'
       - 'data/meridian_plans/landing_camp_arrival.json'
       - 'scripts/build_meridian_candidate_contact_sheet.py'
       - '.github/workflows/landing-camp-candidate-review.yml'
@@ -18,6 +19,8 @@ jobs:
         run: python3 -m pip install Pillow
       - name: Audit map terrain and required art transitions
         run: python3 scripts/audit_meridian_terrain_roles.py
+      - name: Verify candidate 4bpp tiles and metatile binary structure
+        run: python3 scripts/audit_meridian_gen3_candidate_binaries.py
       - name: Fetch source example art for visual evaluation only
         run: |
           mkdir -p build/meridian_candidate_review
