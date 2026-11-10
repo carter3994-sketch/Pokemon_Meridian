@@ -28,6 +28,15 @@ jobs:
           python3 scripts/export_landing_camp_plan.py
           python3 scripts/export_landing_camp_collision.py
           python3 -c 'import json, subprocess; paths=["data/meridian_plans/landing_camp_arrival.json", "data/meridian_plans/landing_camp_collision_draft.json"]; [(lambda p: (_ for _ in ()).throw(AssertionError(p)) if json.loads(subprocess.check_output(["git", "show", "HEAD:" + p])) != json.load(open(p)) else None)(p) for p in paths]'
+      - name: Generate experimental Landing Camp metatile blockdata
+        run: python3 scripts/generate_landing_camp_metatile_prototype.py
+      - name: Upload map prototype (not playable)
+        uses: actions/upload-artifact@v4
+        with:
+          name: landing-camp-metatile-prototype
+          path: build/meridian_prototypes/
+          if-no-files-found: error
+          retention-days: 14
       - name: Install toolchain
         run: |
           sudo apt-get update
