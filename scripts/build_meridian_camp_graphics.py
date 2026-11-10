@@ -169,6 +169,15 @@ for bloom in (False, True):
     for qy in range(3):
         for qx in range(3):
             ART[f"{prefix}_{qx}_{qy}"]=crown.crop((qx*16,qy*16,qx*16+16,qy*16+16))
+# Ground details and connected path transitions. Keep all decoration passable.
+tile("grass_flowers", 2, lambda d: (d.point((3,4),fill=15),d.point((4,4),fill=14),d.point((11,10),fill=15),d.point((12,10),fill=14),d.line((3,6,3,8),fill=1)))
+tile("grass_ferns", 2, lambda d: (d.line((4,14,6,4,8,14),fill=1),d.line((6,8,2,6),fill=3),d.line((6,10,11,7),fill=3)))
+tile("grass_pebbles", 2, lambda d: (d.ellipse((3,10,6,12),fill=4),d.ellipse((11,4,13,6),fill=5)))
+tile("path_stones", 4, lambda d: (d.ellipse((2,2,5,4),fill=5),d.ellipse((10,10,14,12),fill=6),d.point((7,7),fill=5)))
+tile("path_edge_left", 4, lambda d: (d.line((0,0,0,15),fill=3),d.line((2,0,2,15),fill=5),d.point((10,9),fill=5)))
+tile("path_edge_right", 4, lambda d: (d.line((15,0,15,15),fill=3),d.line((13,0,13,15),fill=5),d.point((4,7),fill=5)))
+tile("path_edge_top", 4, lambda d: (d.line((0,0,15,0),fill=3),d.line((0,2,15,2),fill=5)))
+tile("path_edge_bottom", 4, lambda d: (d.line((0,15,15,15),fill=3),d.line((0,13,15,13),fill=5)))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
@@ -260,6 +269,24 @@ for y,row in enumerate(PLAN["rows"]):
             elif south: grid[y][x]="shore_south"
             elif west: grid[y][x]="shore_west"
             elif east: grid[y][x]="shore_east"
+# Scatter non-repeating grass details only on ordinary ground; leave
+# authored clearings, building footprints, forest and collision unchanged.
+for y,row in enumerate(PLAN["rows"]):
+    for x,ch in enumerate(row):
+        if ch==".":
+            selector=(x*17+y*31+x*y*3)%47
+            if selector==0: grid[y][x]="grass_flowers"
+            elif selector==7: grid[y][x]="grass_ferns"
+            elif selector==19: grid[y][x]="grass_pebbles"
+        elif ch=="=":
+            neighbors=lambda xx,yy: 0<=xx<W and 0<=yy<H and PLAN["rows"][yy][xx] in "=+A12345"
+            if (x*11+y*7)%13==0: grid[y][x]="path_stones"
+            elif neighbors(x,y-1) and neighbors(x,y+1):
+                if not neighbors(x-1,y): grid[y][x]="path_edge_left"
+                elif not neighbors(x+1,y): grid[y][x]="path_edge_right"
+            elif neighbors(x-1,y) and neighbors(x+1,y):
+                if not neighbors(x,y-1): grid[y][x]="path_edge_top"
+                elif not neighbors(x,y+1): grid[y][x]="path_edge_bottom"
 # Compose 2x2 tree crowns from four matching quadrants, not isolated dots.
 # Only replace forest cells; never overwrite roads, door approaches or warps.
 for y in range(1,H-2,3):
