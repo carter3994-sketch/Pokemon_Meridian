@@ -48,7 +48,7 @@ event_scripts = event_scripts_path.read_text()
 include_line = '    .include "data/maps/MeridianLandingCampPrototype/scripts.inc"'
 if include_line in event_scripts:
     raise SystemExit("Prototype event scripts already included")
-event_scripts_path.write_text(event_scripts + "\\n" + include_line + "\\n")
+event_scripts_path.write_text(event_scripts + "\n" + include_line + "\n")
 groups["gMapGroup_TownsAndRoutes"].append(area["name"])
 group_path.write_text(json.dumps(groups, indent=2) + "\n")
 # Redirect only the disposable debug ROM's non-FRLG new-game spawn.
