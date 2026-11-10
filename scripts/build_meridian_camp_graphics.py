@@ -77,6 +77,20 @@ for code in "MLHSQ":
     bottom = max(y for x,y in coords)
     for x,y in coords:
         grid[y][x] = "roof" if y < bottom-1 else ("roof_edge" if y==bottom-1 else "wall")
+# Art-direction pass: break up continuous walls with window bays and roof trim.
+# Preserve exact door coordinates and the existing navigation grid.
+for code in "MLHSQ":
+    coords = [(x,y) for y,row in enumerate(PLAN["rows"]) for x,ch in enumerate(row) if ch==code]
+    if not coords: continue
+    xs = sorted({x for x,y in coords})
+    top = min(y for x,y in coords)
+    bottom = max(y for x,y in coords)
+    for x,y in coords:
+        if y == bottom and x in xs[2:-2] and (x-xs[0])%3==1:
+            grid[y][x] = "window"
+        if y == top and x in (xs[0],xs[-1]):
+            grid[y][x] = "roof_edge"
+# Expose provisional material count in the workbench metadata for review.
 for name in ("medical_door","research_door","hq_door","supply_door","quarters_door"):
     x,y = PLAN["landmarks"][name]
     grid[y][x] = "door"
@@ -91,6 +105,7 @@ for x in range(2,9):
     for y in range(17,20):
         if PLAN["rows"][y][x]=="~":
             grid[y][x] = "ship_deck" if y==17 else "ship_hull"
+# Add a mast and a small ship silhouette without modifying collision.
 for x,y in ((4,16),(5,16),(6,16)):
     if PLAN["rows"][y][x]=="~": grid[y][x]="ship_sail"
 preview=Image.new("RGB",(W*16,H*16))
