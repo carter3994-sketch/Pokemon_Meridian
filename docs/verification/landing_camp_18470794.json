@@ -1,0 +1,70 @@
+{
+  "commit": "18470794ed3c55e37e0e8be2184cbc02b6ad55db",
+  "emulator": "mGBA",
+  "entrances": [
+    {
+      "building": "hq",
+      "entered_map_num": 59,
+      "returned_to": [
+        28,
+        10
+      ],
+      "pass": true
+    },
+    {
+      "building": "research",
+      "entered_map_num": 58,
+      "returned_to": [
+        18,
+        11
+      ],
+      "pass": true
+    },
+    {
+      "building": "medical",
+      "entered_map_num": 57,
+      "returned_to": [
+        8,
+        11
+      ],
+      "pass": true
+    },
+    {
+      "building": "supply",
+      "entered_map_num": 60,
+      "returned_to": [
+        41,
+        22
+      ],
+      "pass": true
+    },
+    {
+      "building": "quarters",
+      "entered_map_num": 61,
+      "returned_to": [
+        41,
+        27
+      ],
+      "pass": true
+    }
+  ],
+  "scope": "Five exterior door transitions and paired returns, via walking inputs; interiors still temporary",
+  "rom_sha256": "0ad68310386b06a72ea4c41f0472a437358bba2cd9009f206a7990de82121c7d",
+  "emulator_source_commit": "662dada8b79070bde93829a44d583c517fc5ec2d",
+  "vram_matching_bytes": 32768,
+  "matching_map_palettes": 13,
+  "forest_boundary_blocked": true,
+  "open_ground_movement_passed": true,
+  "forest_composition": "42 staggered overlapping conifers",
+  "native_metatiles": 220,
+  "primary_tiles_used": 314,
+  "secondary_tiles_used": 321,
+  "not_verified": [
+    "Full approved camp composition",
+    "Final coastline and terrain transitions",
+    "Permanent interiors",
+    "Provision-store/cave entrances",
+    "Waterfall animation",
+    "In-game saving/loading"
+  ]
+}

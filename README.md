@@ -6,11 +6,11 @@ A GBA Pokémon fan-game project based on [RHH pokeemerald-expansion](https://git
 
 The Emerald expansion engine is installed. `develop` builds original Landing Camp tiles, metatiles, palettes, collision blockdata and a playable verification ROM through the [original-art integration workflow](.github/workflows/meridian-art-engine-integration.yml).
 
-Verified code checkpoint: [57457bb4](https://github.com/carter3994-sketch/Pokemon_Meridian/commit/57457bb40724d2948ec42e4a26ff35c968cbf638). Its ROM compiled, passed the GBA header/startup checks, and was tested in mGBA. Both 16 KiB tile banks and all 13 map palettes matched live emulator memory. HQ, research, medical, supply and living-quarters door round trips passed.
+Verified code checkpoint: [18470794](https://github.com/carter3994-sketch/Pokemon_Meridian/commit/18470794ed3c55e37e0e8be2184cbc02b6ad55db). Its ROM compiled, passed the GBA header/startup checks, and was tested in mGBA. Both 16 KiB tile banks and all 13 map palettes matched live emulator memory. HQ, research, medical, supply and living-quarters door round trips passed. The denser forest canopy, its solid boundary and movement on adjacent open ground were checked in the compiled ROM.
 
 Original indexed artwork is in [graphics/meridian/landing_camp](graphics/meridian/landing_camp). The build exports native 4bpp banks, metatiles, behavior attributes, palettes and the actual 48 × 40 map as `meridian-landing-camp-native-tileset`. Architecture follows the approved **Expedition Landing Camp – Aevor.png** project reference.
 
-The full approved camp composition, dense forest and waterfront layout, permanent interiors, provision-store/cave entrances, waterfall animation and final collision review remain unfinished. This is a development checkpoint, not a finished game release. See the [runtime verification record](docs/verification/landing_camp_57457bb4.json).
+The full approved camp composition, dense forest and waterfront layout, permanent interiors, provision-store/cave entrances, waterfall animation and final collision review remain unfinished. This is a development checkpoint, not a finished game release. See the [runtime verification record](docs/verification/landing_camp_18470794.json).
 
 ## Canonical setting
 
