@@ -1,0 +1,65 @@
+name: Meridian Landing Camp Town Design
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - 'data/meridian_plans/landing_camp_arrival.json'
+      - 'data/meridian_plans/landing_camp_collision_draft.json'
+      - 'scripts/generate_landing_camp_metatile_prototype.py'
+      - 'scripts/stage_landing_camp_map_templates.py'
+      - 'scripts/register_landing_camp_prototype.py'
+      - '.github/workflows/meridian-town-design.yml'
+permissions:
+  contents: read
+concurrency:
+  group: meridian-town-design-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install preview dependencies
+        run: python3 -m pip install --user Pillow
+      - name: Validate town layout and access
+        run: |
+          python3 scripts/validate_landing_camp_grid.py
+          python3 scripts/export_landing_camp_collision.py
+      - name: Build editable town plan and engine map
+        run: |
+          python3 scripts/stage_meridian_shady_forest_tileset.py
+          python3 scripts/generate_landing_camp_metatile_prototype.py
+          python3 scripts/stage_landing_camp_map_templates.py
+          python3 scripts/register_meridian_shady_forest_tileset.py
+          python3 scripts/register_landing_camp_prototype.py
+      - name: Render engine layout
+        run: python3 scripts/render_meridian_actual_engine_map.py
+      - name: Reject repeated terrain IDs and definitions
+        id: structural
+        continue-on-error: true
+        run: python3 scripts/qa_meridian_landing_camp_repetition.py
+      - name: Reject repeated rendered pixels
+        id: visual
+        continue-on-error: true
+        run: python3 scripts/qa_meridian_rendered_tileset.py
+      - name: Always upload layout, map and diagnostic reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-town-layout-and-qa
+          path: |
+            build/meridian_candidate_review/
+            build/meridian_prototypes/
+            data/layouts/MeridianLandingCampPrototype/map.bin
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Enforce town quality before promotion
+        if: always()
+        env:
+          STRUCTURAL: ${{ steps.structural.outcome }}
+          VISUAL: ${{ steps.visual.outcome }}
+        run: |
+          test "$STRUCTURAL" = success
+          test "$VISUAL" = success
