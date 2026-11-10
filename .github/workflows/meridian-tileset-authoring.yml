@@ -51,6 +51,7 @@ jobs:
       - name: Stage editable tileset authoring references
         run: |
           python3 scripts/stage_meridian_shady_forest_tileset.py
+          python3 scripts/generate_landing_camp_metatile_prototype.py
           python3 scripts/stage_landing_camp_map_templates.py
           python3 scripts/register_meridian_shady_forest_tileset.py
           python3 scripts/export_meridian_tileset_authoring_atlas.py
