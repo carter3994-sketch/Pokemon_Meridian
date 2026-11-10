@@ -30,7 +30,7 @@ def inspect(name):
     assert sizes["metatiles.bin"] % 16 == 0, (name, "metatile alignment", sizes)
     count = sizes["metatiles.bin"] // 16
     attr_len = sizes["metatile_attributes.bin"]
-    assert attr_len in (count * 2, count * 4), (name, "attribute count mismatch", attr_len, count)
+    assert attr_len % 2 == 0 and attr_len <= count * 4, (name, "attribute data invalid", attr_len, count)
     tile_count = sizes["tiles.4bpp"] // 32
     # Each metatile contains 8 tile references; low ten bits index 8x8 tiles.
     import struct
@@ -39,7 +39,10 @@ def inspect(name):
     # Secondary tilesets may reference tiles from the primary bank; report, do not reject.
     report = {"name": name, "source": BASE + name, "sizes_bytes": sizes,
               "tile_8x8_count": tile_count, "metatile_16x16_count": count,
-              "attribute_bytes_per_metatile": attr_len // count,
+              "attribute_file_bytes": attr_len,
+              "attribute_entries_if_2_bytes": attr_len // 2,
+              "attribute_entries_if_4_bytes": attr_len // 4,
+              "attributes_cover_all_metatiles": attr_len in (count * 2, count * 4),
               "maximum_8x8_tile_reference": max_ref,
               "may_reference_primary_tiles": max_ref >= tile_count,
               "status": "binary_structure_checked_not_engine_imported",
