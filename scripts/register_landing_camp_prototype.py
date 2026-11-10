@@ -56,11 +56,12 @@ while queue:
             reachable.add((nx, ny))
             queue.append((nx, ny))
 
-# Populate the test camp with two temporary, interactable expedition staff.
+# Populate the test camp with three temporary, interactable characters.
 # These use existing Emerald sprites until approved Meridian artwork is ready.
 for x, y, gfx, script in (
     (14, 23, "OBJ_EVENT_GFX_SCIENTIST_1", "MeridianLandingCamp_EventScript_Researcher"),
     (20, 21, "OBJ_EVENT_GFX_FAT_MAN", "MeridianLandingCamp_EventScript_Quartermaster"),
+    (16, 25, "OBJ_EVENT_GFX_SCIENTIST_1", "MeridianLandingCamp_EventScript_Kael"),
 ):
     if mask["rows"][y][x] != "0":
         raise SystemExit(f"Camp NPC location blocked: {x}, {y}")
@@ -94,6 +95,16 @@ MeridianLandingCamp_EventScript_Quartermaster::
     msgbox MeridianLandingCamp_Text_Quartermaster, MSGBOX_DEFAULT
     release
     end
+
+MeridianLandingCamp_EventScript_Kael::
+    lock
+    faceplayer
+    msgbox MeridianLandingCamp_Text_Kael, MSGBOX_DEFAULT
+    release
+    end
+
+MeridianLandingCamp_Text_Kael:
+    .string "My people call this land AEVOR.\\nIt was never empty.$"
 
 MeridianLandingCamp_Text_Researcher:
     .string "Welcome to MERIDIAN. The natives call it AEVOR.$"
