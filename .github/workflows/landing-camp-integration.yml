@@ -42,6 +42,20 @@ jobs:
           GAME_LANGUAGE: ENGLISH
           COMPARE: '0'
         run: make -j2
+      - name: Validate experimental GBA output
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          rom = Path("pokeemerald.gba")
+          data = rom.read_bytes()
+          assert len(data) >= 1024 * 1024, f"ROM unexpectedly small: {len(data)}"
+          assert len(data) <= 32 * 1024 * 1024, f"ROM exceeds GBA maximum: {len(data)}"
+          assert data[0xB2] == 0x96, "Invalid GBA fixed header byte"
+          assert data[0xA0:0xAC].strip(b"\\0 "), "Missing GBA game title"
+          assert sum(data[0xA0:0xBD]) & 255 == 0xE7, "Invalid GBA header checksum"
+          print(f"Validated {rom.name}: {len(data):,} bytes, title={data[0xA0:0xAC]!r}")
+          PY
       - name: Upload experimental ROM
         uses: actions/upload-artifact@v4
         with:
