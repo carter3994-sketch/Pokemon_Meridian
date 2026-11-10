@@ -10,6 +10,8 @@ on:
       - 'scripts/audit_landing_camp_metatiles.py'
       - 'scripts/render_landing_camp_metatile_atlas.py'
       - 'scripts/build_meridian_camp_graphics.py'
+      - 'scripts/register_meridian_shady_forest_tileset.py'
+      - 'scripts/stage_meridian_shady_forest_tileset.py'
       - 'scripts/validate_meridian_art_sources.py'
       - 'data/meridian_plans/landing_camp_asset_inventory.json'
       - '.github/workflows/landing-camp-integration.yml'
@@ -38,6 +40,9 @@ jobs:
           python3 scripts/audit_landing_camp_metatiles.py
           python3 scripts/generate_landing_camp_metatile_prototype.py
           python3 scripts/stage_landing_camp_map_templates.py
+          python3 -m pip install Pillow
+          python3 scripts/stage_meridian_shady_forest_tileset.py
+          python3 scripts/register_meridian_shady_forest_tileset.py
           python3 scripts/register_landing_camp_prototype.py
           grep -F 'MeridianLandingCampPrototype_MapScripts::' data/maps/MeridianLandingCampPrototype/scripts.inc
           grep -F 'data/maps/MeridianLandingCampPrototype/scripts.inc' data/event_scripts.s
@@ -70,6 +75,11 @@ jobs:
           assert layers[1].attrib["visible"] == "0"
           print("Verified indexed original metatile art and 48x40 preview")
           PY
+      - name: Verify separate Meridian tileset symbol and map binding
+        run: |
+          grep -F 'const struct Tileset gTileset_MeridianShadyForest =' src/data/tilesets/headers.h
+          grep -F 'gTileset_MeridianShadyForest' data/layouts/layouts.json
+          python3 -m json.tool build/meridian_candidate_review/engine_registration_report.json
       - name: Upload original camp graphics workbench
         uses: actions/upload-artifact@v4
         with:
@@ -122,6 +132,14 @@ jobs:
           name: meridian-landing-camp-metatile-inventory
           path: build/meridian_prototypes/metatile_inventory.json
           if-no-files-found: error
+          retention-days: 14
+      - name: Upload tileset integration evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-shady-forest-engine-registration
+          path: |
+            build/meridian_candidate_review/engine_registration_report.json
+            build/meridian_shady_forest_staging/credits.md
           retention-days: 14
       - name: Upload experimental ROM
         uses: actions/upload-artifact@v4
