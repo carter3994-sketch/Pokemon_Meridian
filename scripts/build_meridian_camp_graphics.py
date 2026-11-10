@@ -344,6 +344,52 @@ for qy in range(4):
         x,y=2+qx,14+qy
         assert PLAN["rows"][y][x]=="~", ("ship overlaps non-water",x,y)
         grid[y][x]=f"vessel_{qx}_{qy}"
+# Coordinate-stable material variants: keep the original architectural modules
+# intact, but prevent large uniform terrain and roof slabs. These are authored
+# pixel variations, not duplicate metatile IDs or a relaxed QA threshold.
+# The variation is keyed to map coordinates so incremental edits remain stable.
+VARIANT_MATERIALS = {
+    "grass", "grass_dark", "water", "cliff", "roof", "roof_edge",
+    "path", "path_edge_top", "path_edge_bottom",
+    "path_edge_left", "path_edge_right", "dock",
+}
+for base in sorted(VARIANT_MATERIALS):
+    if base not in ART: continue
+    source=ART[base]
+    for v in range(1,5):
+        im=source.copy()
+        d=ImageDraw.Draw(im)
+        # Small palette-consistent texture marks, always confined within the
+        # tile (no visible discontinuity at neighboring tile boundaries).
+        bx=2+((v*3)%9)
+        by=2+((v*5)%9)
+        background=source.getpixel((bx,by))
+        if base.startswith("grass"):
+            ink=3 if background!=3 else 1
+        elif base=="water": ink=11
+        elif base.startswith("path"): ink=5 if background!=5 else 6
+        elif base.startswith("roof"): ink=13 if background!=13 else 12
+        elif base=="dock": ink=8 if background!=8 else 7
+        else: ink=13 if background!=13 else 6
+        d.line((bx,by,bx+2,by),fill=ink)
+        d.point((bx+1,by+1),fill=ink)
+        ART[f"{base}_material_{v}"]=im
+for y in range(H):
+    for x in range(W):
+        base=grid[y][x]
+        if base in VARIANT_MATERIALS:
+            # Four-phase checker with deterministic row offsets. No adjacent
+            # tiles share the same source texture, including along roof runs.
+            phase=(x+2*y)%5
+            if phase: grid[y][x]=f"{base}_material_{phase}"
+# Regenerate indexed atlas and manifest after adding the material variants.
+names=list(ART)
+atlas=Image.new("P",(16*8,16*((len(names)+7)//8)),0)
+atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
+for i,name in enumerate(names):
+    atlas.paste(ART[name],((i%8)*16,(i//8)*16))
+atlas.save(OUT/"camp_original_metatiles_indexed.png")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
