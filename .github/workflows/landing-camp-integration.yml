@@ -22,6 +22,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
+      - name: Inspect generated map inputs
+        run: |
+          python3 -m json.tool data/maps/map_groups.json > /dev/null
+          python3 -m json.tool data/layouts/layouts.json > /dev/null
+          find data -iname '*heal*location*' -maxdepth 4 -print
+          git status --short | head -30
       - name: Compile prototype registration
         env:
           GAME_VERSION: EMERALD
