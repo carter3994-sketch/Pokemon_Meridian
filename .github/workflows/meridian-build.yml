@@ -22,6 +22,8 @@ jobs:
         run: |
           test -f Makefile
           test -f UPSTREAM_COMMIT
+      - name: Validate Landing Camp engineering grid
+        run: python3 scripts/validate_landing_camp_grid.py
       - name: Install toolchain
         run: |
           sudo apt-get update
