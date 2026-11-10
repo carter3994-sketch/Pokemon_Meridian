@@ -53,6 +53,7 @@ for label, rel in SETS:
     tiles_per_row = src.width // 8
     if tiles_per_row == 0 or src.height % 8:
         raise ValueError(f"Unexpected tile sheet dimensions: {src.size}")
+    unresolved = set()
     for idx in range(count):
         entries = struct.unpack_from("<8H", raw, idx * 16)
         tile = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
@@ -65,7 +66,8 @@ for label, rel in SETS:
                 source_columns = source.width // 8
                 tx, ty = (local_id % source_columns) * 8, (local_id // source_columns) * 8
                 if ty + 8 > source.height:
-                    raise ValueError(f"Tile {tile_id} outside {label} image")
+                    unresolved.add(tile_id)
+                    continue
                 indices = source.crop((tx, ty, tx + 8, ty + 8))
                 palette = palettes[(word >> 12) & 15]
                 patch = Image.new("RGBA", (8, 8))
@@ -82,4 +84,8 @@ for label, rel in SETS:
         draw.text((x, y + 16 * SCALE + 2), f"{idx:03d} / 0x{idx:03X}", fill="black")
     dest = OUT / f"metatile_atlas_{label}.png"
     sheet.save(dest)
+    if unresolved:
+        report = OUT / f"metatile_unresolved_{label}.txt"
+        report.write_text("Unresolved tile IDs (preview intentionally leaves these blank):\\n" + "\\n".join(map(str, sorted(unresolved))) + "\\n")
+        print(f"WARNING: {len(unresolved)} unresolved tile IDs; see {report}")
     print(f"Rendered {dest} ({count} metatiles)")
