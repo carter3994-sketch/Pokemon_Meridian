@@ -52,6 +52,37 @@
       "visual_approval": false,
       "import_allowed": false,
       "notes": "Discovery catalog only. Follow individual DeviantArt artist pages."
+    },
+    {
+      "id": "tah-shady-forest",
+      "name": "Shady Forest Secondary",
+      "source": "https://github.com/TeamAquasHideout/Team-Aquas-Asset-Repo/tree/master/Tilesets/The%20Great%20Tileset%20Exchange/Full%20Tilesets/Shady%20Forest%20Secondary",
+      "original_author": "multiple artists; see credits.md",
+      "roles": [
+        "forest",
+        "cliffs"
+      ],
+      "source_format": "Gen 3 native 4bpp tiles + metatiles + palettes + attributes",
+      "license_status": "unverified",
+      "visual_approval": false,
+      "import_allowed": false,
+      "notes": "Actual Gen 3 insertable secondary tileset: tiles.4bpp, metatiles.bin, metatile_attributes.bin, palettes, example.png, tiles.png. README requests credit for all artists in credits.md and Rahtak for insertable reformat; multi-artist provenance requires review."
+    },
+    {
+      "id": "tah-autumn-ruins",
+      "name": "Autumn Ruins Secondary",
+      "source": "https://github.com/TeamAquasHideout/Team-Aquas-Asset-Repo/tree/master/Tilesets/The%20Great%20Tileset%20Exchange/Full%20Tilesets/Autumn%20Ruins%20Secondary",
+      "original_author": "multiple artists; see credits.md",
+      "roles": [
+        "ruins",
+        "cliffs",
+        "forest"
+      ],
+      "source_format": "Gen 3 native 4bpp tiles + metatiles + palettes + attributes",
+      "license_status": "unverified",
+      "visual_approval": false,
+      "import_allowed": false,
+      "notes": "Actual Gen 3 insertable secondary tileset with graphics, metatiles, palettes, attributes and preview. README requires credits.md artists and Rahtak; multi-artist provenance requires review."
     }
   ],
   "required_roles": [
