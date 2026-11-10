@@ -5,6 +5,9 @@ on:
     branches: [develop]
     paths:
       - '.github/workflows/meridian-town-mapping.yml'
+      - 'data/maps/**'
+      - 'data/tilesets/**'
+      - 'graphics/tilesets/**'
 permissions:
   contents: read
 jobs:
@@ -16,27 +19,53 @@ jobs:
       - name: Install Porymap MCP with renderer
         run: |
           python3 -m pip install --user 'porymap-mcp[render]==1.0.1'
-      - name: Verify toolchain import and command
+      - name: Verify toolchain and inventory map assets
         run: |
           python3 - <<'PY'
           import importlib.metadata as metadata
           import importlib.util
           import json
           from pathlib import Path
-          version=metadata.version("porymap-mcp")
-          assert version=="1.0.1",version
+
+          version = metadata.version("porymap-mcp")
+          assert version == "1.0.1", version
           assert importlib.util.find_spec("porymap_mcp") is not None
-          report={"tool":"porymap-mcp","version":version,"python_import":"passed","status":"installed_for_map-authoring_tests","map_mutations":"NOT RUN","render_validation":"NOT RUN"}
-          dest=Path("build/meridian_town_toolchain")
-          dest.mkdir(parents=True,exist_ok=True)
-          (dest/"toolchain_report.json").write_text(json.dumps(report,indent=2)+"\n")
-          print(json.dumps(report,indent=2))
+
+          roots = [Path("data/maps"), Path("data/tilesets"), Path("graphics/tilesets")]
+          extensions = {".json", ".png", ".bin", ".pal", ".inc", ".c", ".h", ".tilemap1", ".tilemap2"}
+          inventory = {}
+          for root in roots:
+              files = sorted(str(p) for p in root.rglob("*") if p.is_file() and p.suffix.lower() in extensions) if root.exists() else []
+              inventory[str(root)] = {"exists": root.exists(), "file_count": len(files), "files": files}
+
+          candidates = sorted({p for group in inventory.values() for p in group["files"] if any(term in p.lower() for term in ("landing", "camp", "meridian"))})
+          report = {
+              "tool": "porymap-mcp",
+              "version": version,
+              "python_import": "passed",
+              "asset_inventory": inventory,
+              "candidate_landing_camp_files": candidates,
+              "map_mutations": "NOT RUN",
+              "render_validation": "NOT RUN",
+              "rom_compilation": "NOT RUN"
+          }
+          dest = Path("build/meridian_town_toolchain")
+          dest.mkdir(parents=True, exist_ok=True)
+          (dest / "toolchain_report.json").write_text(json.dumps(report, indent=2) + "\n")
+          summary = ["# Meridian map toolchain audit", "", f"Porymap MCP: {version}", ""]
+          for root, info in inventory.items():
+              summary.append(f"- {root}: {info['file_count']} files; exists={info['exists']}")
+          summary.append(f"- Landing Camp candidates: {len(candidates)}")
+          summary.append("- Map editing, rendering and ROM compilation have not been run.")
+          (dest / "summary.md").write_text("\n".join(summary) + "\n")
+          with open(__import__("os").environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("\n".join(summary) + "\n")
+          print("\n".join(summary))
           PY
-      - name: Upload toolchain report
+      - name: Upload toolchain and map inventory report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: meridian-town-toolchain-smoke-test
           path: build/meridian_town_toolchain/
           if-no-files-found: warn
-
