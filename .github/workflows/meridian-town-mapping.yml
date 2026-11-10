@@ -1,0 +1,41 @@
+name: Meridian Town Mapping Toolchain
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/meridian-town-mapping.yml'
+permissions:
+  contents: read
+jobs:
+  town-toolchain-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Porymap MCP with renderer
+        run: |
+          python3 -m pip install --user 'porymap-mcp[render]==1.0.1'
+      - name: Verify toolchain import and command
+        run: |
+          python3 - <<'PY'
+          import importlib.metadata as metadata
+          import importlib.util
+          import json
+          from pathlib import Path
+          version=metadata.version("porymap-mcp")
+          assert version=="1.0.1",version
+          assert importlib.util.find_spec("porymap_mcp") is not None
+          report={"tool":"porymap-mcp","version":version,"python_import":"passed","status":"installed_for_map-authoring_tests","map_mutations":"NOT RUN","render_validation":"NOT RUN"}
+          dest=Path("build/meridian_town_toolchain")
+          dest.mkdir(parents=True,exist_ok=True)
+          (dest/"toolchain_report.json").write_text(json.dumps(report,indent=2)+"\n")
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Upload toolchain report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-town-toolchain-smoke-test
+          path: build/meridian_town_toolchain/
+          if-no-files-found: warn
