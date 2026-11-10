@@ -5,6 +5,8 @@ on:
     branches: [develop]
     paths:
       - '.github/workflows/meridian-town-mapping.yml'
+      - 'tools/meridian_map_audit.py'
+      - 'data/layouts/layouts.json'
       - 'data/maps/**'
       - 'data/tilesets/**'
       - 'graphics/tilesets/**'
@@ -62,6 +64,10 @@ jobs:
               f.write("\n".join(summary) + "\n")
           print("\n".join(summary))
           PY
+      - name: Validate map registry and layouts
+        run: |
+          python3 tools/meridian_map_audit.py
+          cp build/meridian_map_audit/report.json build/meridian_town_toolchain/map_registry_report.json
       - name: Upload toolchain and map inventory report
         if: always()
         uses: actions/upload-artifact@v4
