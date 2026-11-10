@@ -7,6 +7,7 @@ on:
       - 'scripts/register_landing_camp_prototype.py'
       - 'scripts/stage_landing_camp_map_templates.py'
       - 'scripts/generate_landing_camp_metatile_prototype.py'
+      - 'scripts/audit_landing_camp_metatiles.py'
       - '.github/workflows/landing-camp-integration.yml'
 concurrency:
   group: landing-camp-integration-${{ github.ref }}
@@ -19,6 +20,7 @@ jobs:
       - name: Generate and register disposable debug map
         run: |
           python3 -m py_compile scripts/register_landing_camp_prototype.py
+          python3 scripts/audit_landing_camp_metatiles.py
           python3 scripts/generate_landing_camp_metatile_prototype.py
           python3 scripts/stage_landing_camp_map_templates.py
           python3 scripts/register_landing_camp_prototype.py
@@ -56,6 +58,13 @@ jobs:
           assert (sum(data[0xA0:0xBE]) & 255) == 0xE7, "Invalid GBA header checksum"
           print(f"Validated {rom.name}: {len(data):,} bytes, title={data[0xA0:0xAC]!r}")
           PY
+      - name: Upload metatile inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-metatile-inventory
+          path: build/meridian_prototypes/metatile_inventory.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload experimental ROM
         uses: actions/upload-artifact@v4
         with:
