@@ -83,6 +83,14 @@ tile("ship_mast", 10, lambda d: (d.rectangle((7,0,9,15),fill=6),d.line((4,10,12,
 tile("ship_rigging", 10, lambda d: (d.line((0,15,8,0,15,15),fill=5),d.line((8,0,8,15),fill=6)))
 tile("water_edge_left", 10, lambda d: (d.polygon([(0,0),(6,0),(9,4),(7,9),(10,15),(0,15)],fill=5),d.line((6,0,9,4,7,9,10,15),fill=11)))
 tile("water_edge_right", 10, lambda d: (d.polygon([(10,0),(15,0),(15,15),(8,15),(6,9),(9,4)],fill=5),d.line((10,0,9,4,6,9,8,15),fill=11)))
+# Expedition architectural vocabulary: readable signage and structural depth.
+tile("hq_banner", 5, lambda d: (d.rectangle((2,1,13,13),fill=12),d.rectangle((4,3,11,10),fill=8),d.line((7,3,7,10),fill=5)))
+tile("research_emblem", 5, lambda d: (d.rectangle((2,1,13,13),fill=6),d.ellipse((4,3,11,10),outline=11),d.line((4,10,11,3),fill=11)))
+tile("medical_cross", 5, lambda d: (d.rectangle((2,1,13,13),fill=15),d.rectangle((7,3,9,11),fill=14),d.rectangle((4,6,12,8),fill=14)))
+tile("supply_crates", 5, lambda d: (d.rectangle((1,7,8,15),fill=7),d.rectangle((8,4,15,15),fill=6),d.line((8,4,15,15),fill=8)))
+tile("quarters_lantern", 5, lambda d: (d.line((8,0,8,4),fill=6),d.rectangle((5,4,11,12),fill=8),d.rectangle((6,5,10,10),fill=5)))
+tile("porch_floor", 6, lambda d: ([d.line((0,y,15,y),fill=8) for y in (4,10)],d.line((7,0,7,15),fill=7)))
+tile("roof_gable", 12, lambda d: (d.polygon([(0,15),(8,1),(15,15)],fill=13),d.line((0,15,8,1,15,15),fill=8),d.line((3,13,12,13),fill=6)))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
@@ -135,6 +143,24 @@ for code in "MLHSQ":
             elif (x-xs[0])%4 == 2: grid[y][x] = "roof_ridge"
         elif y == bottom and x in (xs[0],xs[-1]):
             grid[y][x] = "facade_pillar"
+# Building-specific signs above entry doors; no warp coordinates are moved.
+signs = {
+    "medical_door":"medical_cross",
+    "research_door":"research_emblem",
+    "hq_door":"hq_banner",
+    "supply_door":"supply_crates",
+    "quarters_door":"quarters_lantern",
+}
+for name,sign in signs.items():
+    x,y=PLAN["landmarks"][name]
+    if y>0 and PLAN["rows"][y-1][x] in "MLHSQ":
+        grid[y-1][x]=sign
+# Readable gable roof centered above HQ, while leaving the entrance clear.
+hq=[(x,y) for y,row in enumerate(PLAN["rows"]) for x,ch in enumerate(row) if ch=="H"]
+if hq:
+    y=min(y for x,y in hq)
+    xs=sorted({x for x,yy in hq if yy==y})
+    grid[y][xs[len(xs)//2]]="roof_gable"
 # Expose provisional material count in the workbench metadata for review.
 for name in ("medical_door","research_door","hq_door","supply_door","quarters_door"):
     x,y = PLAN["landmarks"][name]
