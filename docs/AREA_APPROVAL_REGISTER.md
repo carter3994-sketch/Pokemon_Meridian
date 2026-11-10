@@ -4,7 +4,7 @@ Updated 2026-11-09.
 
 | Area | Visual concept | Visual approval | Playable layout | Layout approval | Implementation | In-game verification |
 |---|---|---|---|---|---|---|
-| Expedition Landing Camp, Aevor | Version 2.0: modern prefab expedition facilities, medical/research buildings, supply depot, working dock, dirt roads, colorful coastal cliffs and forest, ancient ruins and ominous cave | **APPROVED by user** (explicit: "This is MUCH better.i approve") | Not yet presented as a precise playable tilemap | **PENDING** | Not approved for final map implementation | Pending |
+| Expedition Landing Camp, Aevor | Version 2.0: modern prefab expedition facilities, medical/research buildings, supply depot, working dock, dirt roads, colorful coastal cliffs and forest, ancient ruins and ominous cave | **APPROVED** | Concept layout v1.0 (dock, commons, HQ, research/medical, depot, living quarters, ruins, optional coastal path and cave) | **APPROVED** with progressive settlement growth requirement; exact tile-grid still pending | Not yet implemented | Pending |
 | Route 1 / Forest Trail | Not yet presented | Pending | Not yet presented | Pending | Pending | Pending |
 | Optional Coastal Route | Not yet presented | Pending | Not yet presented | Pending | Pending | Pending |
 | Optional Cliffside Cave | Not yet presented | Pending | Not yet presented | Pending | Pending | Pending |
@@ -20,4 +20,4 @@ Updated 2026-11-09.
 - Previous version 1.0 fantasy/tent-heavy concept was superseded by version 2.0.
 
 ## Next approval checkpoint
-Present a detailed, legible **playable layout proposal** for the Landing Camp, with paths, optional exploration loops, NPCs, story triggers, restricted areas, landmarks and exits, for explicit user approval. No final map art implementation until then.
+Translate the approved overall layout into an exact GBA-feasible tile-grid, collision, warp and event plan for review. Build progressive settlement growth as a persistent world-state system. Final in-game fidelity review remains required.
