@@ -91,6 +91,14 @@ tile("supply_crates", 5, lambda d: (d.rectangle((1,7,8,15),fill=7),d.rectangle((
 tile("quarters_lantern", 5, lambda d: (d.line((8,0,8,4),fill=6),d.rectangle((5,4,11,12),fill=8),d.rectangle((6,5,10,10),fill=5)))
 tile("porch_floor", 6, lambda d: ([d.line((0,y,15,y),fill=8) for y in (4,10)],d.line((7,0,7,15),fill=7)))
 tile("roof_gable", 12, lambda d: (d.polygon([(0,15),(8,1),(15,15)],fill=13),d.line((0,15,8,1,15,15),fill=8),d.line((3,13,12,13),fill=6)))
+# Harbor construction: dedicated wood decking, posts, rope and sea spray.
+tile("dock_post", 10, lambda d: (d.rectangle((5,0,10,15),fill=6),d.rectangle((5,0,10,3),fill=8),d.line((4,5,11,5),fill=5)))
+tile("dock_rope", 10, lambda d: (d.line((0,7,4,9,9,8,15,5),fill=5),d.line((0,9,4,11,9,10,15,7),fill=6)))
+tile("dock_plank", 6, lambda d: ([d.line((0,y,15,y),fill=8) for y in (0,5,11,15)],d.line((5,1,5,4),fill=7),d.line((12,6,12,10),fill=7)))
+tile("foam", 10, lambda d: ([d.line((x,y,x+4,y),fill=15) for x,y in ((2,4),(9,10))],d.point((6,6),fill=11)))
+tile("ship_cabin", 6, lambda d: (d.rectangle((1,2,14,15),fill=7),d.rectangle((4,5,11,10),fill=11),d.line((0,1,15,1),fill=8)))
+tile("ship_pennant", 10, lambda d: (d.line((7,0,7,15),fill=6),d.polygon([(8,1),(15,4),(8,7)],fill=14)))
+tile("ship_keel", 10, lambda d: (d.polygon([(0,1),(15,1),(11,12),(4,12)],fill=12),d.line((2,4,13,4),fill=8)))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
@@ -199,6 +207,19 @@ for y in range(17,20):
     for x,graphic in ((2,"ship_stern"),(8,"ship_bow")):
         if PLAN["rows"][y][x]=="~":
             grid[y][x]=graphic
+# Dedicated dock wood textures and mooring fixtures.
+for y,row in enumerate(PLAN["rows"]):
+    for x,ch in enumerate(row):
+        if ch=="D":
+            grid[y][x]="dock_plank"
+            if x>0 and PLAN["rows"][y][x-1]!="D":
+                grid[y][x]="dock_post"
+            elif x+1<W and PLAN["rows"][y][x+1]!="D":
+                grid[y][x]="dock_rope"
+# The ship's cabin and pennant are separate pieces from its hull.
+for x,y,graphic in ((4,17,"ship_cabin"),(5,17,"ship_cabin"),(5,16,"ship_pennant")):
+    if PLAN["rows"][y][x]=="~":
+        grid[y][x]=graphic
 # Add a mast and a small ship silhouette without modifying collision.
 for x,y in ((4,16),(5,16),(6,16)):
     if PLAN["rows"][y][x]=="~": grid[y][x]="ship_sail"
