@@ -15,7 +15,10 @@ OUT=ROOT/"build/meridian_candidate_review"
 OUT.mkdir(parents=True,exist_ok=True)
 atlas=Image.open(ART/"camp_original_metatiles_indexed.png")
 assert atlas.mode=="P" and atlas.width%16==0 and atlas.height%16==0
-names=json.loads((ART/"metatile_manifest.json").read_text())["metatiles"]
+manifest=json.loads((ART/"metatile_manifest.json").read_text())
+names=manifest["metatiles"]
+palette_slots=manifest.get("tile_palettes",{})
+name_by_id=list(names)
 assert len(names)<=512
 tree=ET.parse(ART/"camp_48x40_editable.tmx").getroot()
 w,h=int(tree.get("width")),int(tree.get("height"))
@@ -33,6 +36,9 @@ collision=cells(layers[1])
 assert all(1<=g<=len(names) for g in gids)
 assert all(v in (0,1) for v in collision)
 assert 0<len(names)<=(atlas.width//16)*(atlas.height//16), "Atlas may have padding in its last row"
+used_ids={gid-1 for gid in gids}
+# Compile referenced metatiles only; unused source-art studies consume no VRAM.
+# Keep stable metatile IDs so editing the source atlas cannot move doors.
 # Build 512 unique 8x8 tiles maximum, padding with transparent tile 0.
 # Upper-layer references must use our own transparent tile. Primary tile 0
 # belongs to General and is not guaranteed to be blank.
@@ -43,14 +49,18 @@ metas=[]
 for mid in range(len(names)):
     mx=(mid%(atlas.width//16))*16
     my=(mid//(atlas.width//16))*16
+    if mid not in used_ids:
+        metas.extend([(6<<12)|512]*8)
+        continue
     refs=[]
+    palette_slot=palette_slots.get(name_by_id[mid],6)
     for sy,sx in ((0,0),(0,8),(8,0),(8,8)):
         pixels=tuple(int(atlas.getpixel((mx+sx+x,my+sy+y))) for y in range(8) for x in range(8))
         assert all(0<=c<16 for c in pixels)
         if pixels not in tile_cache:
             tile_cache[pixels]=len(tiles)
             tiles.append(pixels)
-        refs.append((6<<12)|(512+tile_cache[pixels]))
+        refs.append((palette_slot<<12)|(512+tile_cache[pixels]))
     metas.extend(refs+[(6<<12)|512]*4)
 assert len(tiles)<=512, f"Original art requires {len(tiles)} secondary 8x8 tiles; maximum 512"
 # Palette index 0 is transparent in the engine; the artwork uses it for cave openings.
@@ -72,7 +82,7 @@ for index in range(512):
 (DEST/"tiles.4bpp").write_bytes(packed)
 assert len(packed)==16384 and packed[:32]==bytes(32)
 # Check each reference against the packed bytes used by the hardware.
-for mid in range(len(names)):
+for mid in sorted(used_ids):
     for slot in range(4):
         ref=metas[mid*8+slot]
         index=(ref&1023)-512
@@ -85,9 +95,21 @@ for mid in range(len(names)):
 # Unused metatiles are transparent too; do not refer into primary graphics.
 metas.extend([(6<<12)|512]*((512-len(names))*8))
 (DEST/"metatiles.bin").write_bytes(struct.pack("<4096H",*metas))
-(DEST/"metatile_attributes.bin").write_bytes(bytes(1024))
+# A coordinate warp alone is insufficient: Emerald also requires door behavior.
+# Resolve the enum from engine source so values cannot silently drift.
+import re
+behaviors=re.findall(r"\bMB_[A-Z0-9_]+\b",(ROOT/"include/constants/metatile_behaviors.h").read_text().split("};",1)[0])
+door_behavior=behaviors.index("MB_NON_ANIMATED_DOOR")
+attrs=[0]*512
+plan=json.loads((ROOT/"data/meridian_plans/landing_camp_arrival.json").read_text())
+for key in ("medical_door","research_door","hq_door","supply_door","quarters_door"):
+    dx,dy=plan["landmarks"][key]
+    assert collision[dy*w+dx]==0, ("Blocked entrance",key)
+    attrs[gids[dy*w+dx]-1]=door_behavior
+(DEST/"metatile_attributes.bin").write_bytes(struct.pack("<512H",*attrs))
 colors=json.loads((ART/"metatile_manifest.json").read_text())["palette"]
-(DEST/"palettes/06.pal").write_text("JASC-PAL\n0100\n16\n"+"".join(f"{r} {g} {b}\n" for r,g,b in colors))
+for slot,palette in manifest.get("palettes",{"6":colors}).items():
+    (DEST/f"palettes/{int(slot):02d}.pal").write_text("JASC-PAL\n0100\n16\n"+"".join(f"{r} {g} {b}\n" for r,g,b in palette))
 words=[(512+gid-1)|(0x0C00 if blocked else 0)|0x3000 for gid,blocked in zip(gids,collision)]
 MAP.write_bytes(struct.pack("<1920H",*words))
 report={"status":"original_art_integrated_into_disposable_engine_checkout","map_size":[w,h],

@@ -4,6 +4,7 @@ on:
   push:
     branches: [develop]
     paths:
+      - 'graphics/meridian/landing_camp/**'
       - 'scripts/integrate_meridian_original_camp_art.py'
       - 'scripts/build_meridian_camp_graphics.py'
       - 'scripts/render_meridian_actual_engine_map.py'
@@ -82,11 +83,11 @@ jobs:
           test "$STRUCTURE" = success
           test "$PIXELS" = success
 
-      - name: Install Emerald build toolchain only after graphics approval
+      - name: Install Emerald build toolchain after automated checks
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev
-      - name: Compile approved candidate ROM
+      - name: Compile experimental asset integration ROM
         env:
           GAME_VERSION: EMERALD
           GAME_LANGUAGE: ENGLISH
@@ -100,12 +101,12 @@ jobs:
           assert 1024*1024<=len(rom)<=32*1024*1024
           assert rom[0xB2]==0x96
           assert sum(rom[0xA0:0xBE])&255==0xE7
-          print("Approved candidate GBA validated:",len(rom),"bytes")
+          print("Experimental integration GBA validated:",len(rom),"bytes")
           PY
       - name: Upload ROM only after all graphics gates and compilation pass
         uses: actions/upload-artifact@v4
         with:
-          name: meridian-original-art-approved-landing-camp-rom
+          name: meridian-original-art-experimental-landing-camp-rom
           path: pokeemerald.gba
           if-no-files-found: error
           retention-days: 7

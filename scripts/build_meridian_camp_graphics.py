@@ -392,6 +392,23 @@ for y in range(H):
             # tiles share the same source texture, including along roof runs.
             phase=(x+2*y)%5
             if phase: grid[y][x]=f"{base}_material_{phase}"
+# Production HQ asset, adapted from the approved Aevor reference. Keep its
+# own 15-color palette rather than forcing blue metal and gold into grass colors.
+hq_image=Image.open(ROOT/"graphics/meridian/landing_camp/headquarters.png")
+assert hq_image.mode=="P" and hq_image.size==(96,80)
+hq_palette=[tuple(hq_image.getpalette()[i:i+3]) for i in range(0,48,3)]
+# Composite sprite transparency over matching camp grass, not the BG backdrop.
+hq_image.putdata([15 if value==0 else value for value in hq_image.getdata()])
+for yy,row in enumerate(PLAN["rows"]):
+    for xx,ch in enumerate(row):
+        if ch=="H": grid[yy][xx]="grass" if (xx+2*yy)%5==0 else f"grass_material_{(xx+2*yy)%5}"
+for qy in range(5):
+    for qx in range(6):
+        name=f"headquarters_{qx}_{qy}"
+        ART[name]=hq_image.crop((qx*16,qy*16,qx*16+16,qy*16+16))
+        if set(ART[name].getdata())!={15}:
+            grid[6+qy][25+qx]=name
+
 # Regenerate indexed atlas and manifest after adding the material variants.
 names=list(ART)
 atlas=Image.new("P",(16*8,16*((len(names)+7)//8)),0)
@@ -399,7 +416,7 @@ atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name],((i%8)*16,(i//8)*16))
 atlas.save(OUT/"camp_original_metatiles_indexed.png")
-(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette},"tile_palettes":{n:7 if n.startswith("headquarters_") else 6 for n in names},"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
@@ -411,6 +428,14 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 collision = json.loads((ROOT / "data/meridian_plans/landing_camp_collision_draft.json").read_text())
 assert len(collision["rows"]) == H and all(len(row) == W for row in collision["rows"])
+collision["rows"]=[list(row) for row in collision["rows"]]
+for yy,row in enumerate(PLAN["rows"]):
+    for xx,ch in enumerate(row):
+        if ch=="H": collision["rows"][yy][xx]="0"
+for yy in range(6,11):
+    for xx in range(25,31): collision["rows"][yy][xx]="1" if grid[yy][xx].startswith("headquarters_") else "0"
+collision["rows"][10][28]="0"
+assert PLAN["landmarks"]["hq_door"]==[28,10]
 tmx = ET.Element("map", {
     "version":"1.10","tiledversion":"1.11.2","orientation":"orthogonal",
     "renderorder":"right-down","width":str(W),"height":str(H),
