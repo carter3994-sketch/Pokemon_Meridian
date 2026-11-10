@@ -227,13 +227,15 @@ for y in range(H):
 for x,y in ((10,25),(22,26),(27,24)):
     if PLAN["rows"][y][x] in ".=":
         grid[y][x]="tent_roof"
+# Ship occupies 14..17: rows 18..20 contain the dock. Never clip hull against
+# the pier; assert the entire 7x4 footprint is open water.
 # Place complete ship silhouette on the existing water area without altering
 # gameplay collision, warp points or the source layout.
 for qy in range(4):
     for qx in range(7):
-        x,y=2+qx,16+qy
-        if PLAN["rows"][y][x]=="~":
-            grid[y][x]=f"vessel_{qx}_{qy}"
+        x,y=2+qx,14+qy
+        assert PLAN["rows"][y][x]=="~", ("ship overlaps non-water",x,y)
+        grid[y][x]=f"vessel_{qx}_{qy}"
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
