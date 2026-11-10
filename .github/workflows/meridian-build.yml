@@ -23,7 +23,10 @@ jobs:
           test -f Makefile
           test -f UPSTREAM_COMMIT
       - name: Validate Landing Camp engineering grid
-        run: python3 scripts/validate_landing_camp_grid.py
+        run: |
+          python3 scripts/validate_landing_camp_grid.py
+          python3 scripts/export_landing_camp_plan.py
+          git diff --exit-code -- data/meridian_plans/landing_camp_arrival.json
       - name: Install toolchain
         run: |
           sudo apt-get update
