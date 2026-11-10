@@ -199,9 +199,9 @@ ET.SubElement(tileset,"image",{"source":"camp_original_metatiles_indexed.png",
     "width":str(atlas.width),"height":str(atlas.height)})
 def csv_layer(layer_id,name,values):
     layer=ET.SubElement(tmx,"layer",{"id":str(layer_id),"name":name,
-        "width":str(W),"height":str(H)})
+        "width":str(W),"height":str(H),"visible":"0" if layer_id==2 else "1"})
     data=ET.SubElement(layer,"data",{"encoding":"csv"})
-    data.text="\\n"+",\\n".join(",".join(str(values[y*W+x]) for x in range(W)) for y in range(H))+"\\n"
+    data.text=chr(10)+(","+chr(10)).join(",".join(str(values[y*W+x]) for x in range(W)) for y in range(H))+chr(10)
 csv_layer(1,"Artwork",[names.index(grid[y][x])+1 for y in range(H) for x in range(W)])
 csv_layer(2,"Collision reference (1=blocked)",[int(collision["rows"][y][x]) for y in range(H) for x in range(W)])
 (OUT/"camp_48x40_editable.tmx").write_bytes(minidom.parseString(ET.tostring(tmx)).toprettyxml(indent="  ",encoding="utf-8"))
