@@ -1,0 +1,51 @@
+name: Meridian Graphics Art Workbench
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - 'scripts/build_meridian_camp_graphics.py'
+      - 'data/meridian_plans/landing_camp_arrival.json'
+      - '.github/workflows/meridian-graphics-workbench.yml'
+permissions:
+  contents: read
+concurrency:
+  group: meridian-graphics-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  graphics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pixel art dependencies
+        run: python3 -m pip install --user Pillow
+      - name: Build original indexed art and concept
+        run: python3 scripts/build_meridian_camp_graphics.py
+      - name: Verify art palette and map preview
+        run: |
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          p=Path("build/meridian_camp_art")
+          art=Image.open(p/"camp_original_metatiles_indexed.png")
+          preview=Image.open(p/"camp_48x40_art_direction_preview.png")
+          assert art.mode=="P", "Art must be palette-indexed"
+          assert len(set(art.getdata()))<=16, "More than 16 colors in art"
+          assert preview.size==(768,640), "Concept preview must match 48x40 metatiles"
+          tmx=ET.parse(p/"camp_48x40_editable.tmx").getroot()
+          assert (tmx.attrib["width"],tmx.attrib["height"])==("48","40")
+          for layer in tmx.findall("layer"):
+              data=[v for v in layer.find("data").text.replace("\n","").split(",") if v.strip()]
+              assert len(data)==1920,layer.attrib["name"]
+          print("Original art, editable TMX and concept preview validated")
+          PY
+      - name: Preserve editable graphics and preview
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-original-graphics-authoring
+          path: build/meridian_camp_art/
+          if-no-files-found: warn
+          retention-days: 14
