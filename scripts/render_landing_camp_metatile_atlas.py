@@ -54,6 +54,7 @@ for label, rel in SETS:
     if tiles_per_row == 0 or src.height % 8:
         raise ValueError(f"Unexpected tile sheet dimensions: {src.size}")
     unresolved = set()
+    unresolved_locations = []
     for idx in range(count):
         entries = struct.unpack_from("<8H", raw, idx * 16)
         tile = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
@@ -67,6 +68,7 @@ for label, rel in SETS:
                 tx, ty = (local_id % source_columns) * 8, (local_id // source_columns) * 8
                 if ty + 8 > source.height:
                     unresolved.add(tile_id)
+                    unresolved_locations.append((idx, layer, quadrant, tile_id, local_id))
                     continue
                 indices = source.crop((tx, ty, tx + 8, ty + 8))
                 palette = palettes[(word >> 12) & 15]
@@ -86,6 +88,6 @@ for label, rel in SETS:
     sheet.save(dest)
     if unresolved:
         report = OUT / f"metatile_unresolved_{label}.txt"
-        report.write_text("Unresolved tile IDs (preview intentionally leaves these blank):\n" + "\n".join(map(str, sorted(unresolved))) + "\n")
+        report.write_text("Unresolved tile IDs (preview intentionally leaves these blank):\n" + "\n".join(map(str, sorted(unresolved))) + "\n\nAffected metatile, layer, quadrant, global tile, local tile:\n" + "\n".join(",".join(map(str, record)) for record in unresolved_locations) + "\n")
         print(f"WARNING: {len(unresolved)} unresolved tile IDs; see {report}")
     print(f"Rendered {dest} ({count} metatiles); unresolved={len(unresolved)}")
