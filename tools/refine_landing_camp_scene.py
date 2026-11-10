@@ -30,7 +30,7 @@ placements = []
 def pine(tx, ty, scale=1):
     x, y = tx*16, ty*16
     w, h = 28*scale, 43*scale
-    # Broad canopy with readable layered silhouette and trunk.
+    # Layered forest silhouette: asymmetric boughs and scattered light breaks.
     d.ellipse((x+2*scale,y+h-9*scale,x+w+6*scale,y+h+1*scale),fill=C["shadow"])
     d.rectangle((x+13*scale,y+23*scale,x+18*scale,y+41*scale),fill=C["bark"])
     d.line((x+15*scale,y+25*scale,x+15*scale,y+39*scale),fill=C["wood"])
@@ -40,8 +40,13 @@ def pine(tx, ty, scale=1):
                    (center+width*scale,y+bottom*scale)],fill=C["outline"])
         d.polygon([(center,y+(top+2)*scale),(center-(width-3)*scale,y+(bottom-3)*scale),
                    (center+(width-3)*scale,y+(bottom-3)*scale)],fill=C["deep"])
-        d.line((center-5*scale,y+(top+8)*scale,center+2*scale,y+(top+5)*scale),
+        d.line((center-7*scale,y+(top+9)*scale,center+2*scale,y+(top+6)*scale),
                fill=C["light"],width=scale)
+        d.polygon([(center-8*scale,y+(bottom-5)*scale),
+                   (center-12*scale,y+(bottom-1)*scale),
+                   (center-3*scale,y+(bottom-3)*scale)],fill=C["leaf"])
+        d.line((center+4*scale,y+(bottom-8)*scale,
+                center+10*scale,y+(bottom-6)*scale),fill=C["highlight"],width=scale)
     placements.append({"type":"pine","x":tx,"y":ty,"scale":scale,"collision":"solid canopy/trunk footprint requires map authoring"})
 
 def tent(tx,ty,scale=1):
@@ -56,24 +61,32 @@ def tent(tx,ty,scale=1):
     d.polygon([(x+24*s,y+6*s),(x+44*s,y+33*s),(x+40*s,y+37*s),
                (x+24*s,y+30*s)],fill=C["canvas_dark"])
     d.line((x+24*s,y+7*s,x+24*s,y+38*s),fill=C["canvas_light"],width=s)
+    d.line((x+10*s,y+28*s,x+20*s,y+12*s),fill=C["canvas_light"],width=s)
+    d.line((x+28*s,y+12*s,x+39*s,y+30*s),fill=C["canvas_dark"],width=s)
+    d.line((x+7*s,y+37*s,x+40*s,y+37*s),fill=C["wood"],width=s)
+    d.point((x+5*s,y+39*s),fill=C["wood_light"])
+    d.point((x+43*s,y+39*s),fill=C["wood_light"])
     d.polygon([(x+16*s,y+36*s),(x+24*s,y+20*s),(x+32*s,y+36*s)],fill=C["outline"])
     d.line((x+7*s,y+36*s,x+2*s,y+42*s),fill=C["wood_light"],width=s)
     d.line((x+41*s,y+36*s,x+47*s,y+42*s),fill=C["wood_light"],width=s)
     placements.append({"type":"tent","x":tx,"y":ty,"scale":scale,"collision":"solid tent body; entrance needs a passable event"})
 
 def ground_transition():
-    # Irregular shoreline foam and wet soil accents over the existing straight edge.
+    # Break up the straight shoreline with a staggered wet-earth band.
     for tx in range(18,30):
         x=tx*16
         offset=(tx*7)%5
         y=14*16+5+offset
-        d.line((x+1,y,x+5,y-1,x+9,y+1,x+14,y),fill=C["foam"],width=1)
+        d.polygon([(x,y-4),(x+4,y-2),(x+8,y-5),
+                   (x+12,y-3),(x+15,y-5),(x+15,y+1),(x,y+1)],
+                  fill=C["earth"])
+        d.line((x+1,y+1,x+5,y,x+9,y+2,x+14,y+1),fill=C["foam"],width=1)
         d.point((x+((tx*3)%12),y+3),fill=C["water"])
     placements.append({"type":"shoreline_detail","region":"southeast","collision":"water impassability not yet authored"})
 
 # Deliberate edge framing; keep a clear walkable corridor between tents.
-for tx,ty,scale in ((0,1,1),(3,0,1),(7,1,1),(22,0,1),(26,1,1),
-                    (0,11,1),(3,16,1),(25,12,1),(27,9,1)):
+for tx,ty,scale in ((0,1,1),(3,0,1),(7,1,1),(10,0,1),(22,0,1),(26,1,1),
+                    (0,7,1),(0,11,1),(3,16,1),(6,17,1),(25,12,1),(27,9,1)):
     pine(tx,ty,scale)
 for tx,ty in ((7,5),(17,5),(19,10)):
     tent(tx,ty)
