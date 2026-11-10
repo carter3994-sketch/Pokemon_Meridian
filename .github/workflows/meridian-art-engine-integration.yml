@@ -80,3 +80,31 @@ jobs:
         run: |
           test "$STRUCTURE" = success
           test "$PIXELS" = success
+
+      - name: Install Emerald build toolchain only after graphics approval
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev
+      - name: Compile approved candidate ROM
+        env:
+          GAME_VERSION: EMERALD
+          GAME_LANGUAGE: ENGLISH
+          COMPARE: '0'
+        run: make -j2
+      - name: Verify candidate GBA header
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          rom=Path("pokeemerald.gba").read_bytes()
+          assert 1024*1024<=len(rom)<=32*1024*1024
+          assert rom[0xB2]==0x96
+          assert sum(rom[0xA0:0xBE])&255==0xE7
+          print("Approved candidate GBA validated:",len(rom),"bytes")
+          PY
+      - name: Upload ROM only after all graphics gates and compilation pass
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-original-art-approved-landing-camp-rom
+          path: pokeemerald.gba
+          if-no-files-found: error
+          retention-days: 7
