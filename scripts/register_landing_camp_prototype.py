@@ -78,6 +78,71 @@ for x, y, gfx, script in (
         "trainer_sight_or_berry_tree_id": "0",
         "script": script, "flag": "0",
     })
+# Create five traversable, reversible camp building interiors. Reuse existing
+# engine-compatible indoor layouts as temporary art until custom assets land.
+# Each outside door and its indoor exit are paired by a stable warp index.
+interiors = (
+    ("Medical", "medical_door", "LittlerootTown_ProfessorBirchsLab", (6, 12), (7, 12)),
+    ("Research", "research_door", "LittlerootTown_ProfessorBirchsLab", (6, 12), (7, 12)),
+    ("Headquarters", "hq_door", "LittlerootTown_BrendansHouse_1F", (9, 8), (8, 8)),
+    ("Supply", "supply_door", "LittlerootTown_BrendansHouse_1F", (9, 8), (8, 8)),
+    ("Quarters", "quarters_door", "LittlerootTown_BrendansHouse_1F", (9, 8), (8, 8)),
+)
+landmarks = json.loads((root / "data/meridian_plans/landing_camp_arrival.json").read_text())["landmarks"]
+existing_layouts = {entry["name"].removesuffix("_Layout"): entry for entry in registry["layouts"]}
+for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interiors):
+    x, y = landmarks[landmark]
+    if mask["rows"][y][x] != "0":
+        raise SystemExit(f"Blocked entrance for {label}")
+    interior_name = "MeridianLandingCamp" + label
+    interior_id = "MAP_MERIDIAN_LANDING_CAMP_" + label.upper()
+    layout_id = "LAYOUT_MERIDIAN_LANDING_CAMP_" + label.upper()
+    source_map = json.loads((maps / source_name / "map.json").read_text())
+    source_layout = next(
+        entry for entry in registry["layouts"]
+        if entry["id"] == source_map["layout"]
+    )
+    source_block = root / source_layout["blockdata_filepath"]
+    source_border = root / source_layout["border_filepath"]
+    interior_layout = dict(source_layout)
+    interior_layout.update({
+        "id": layout_id,
+        "name": interior_name + "_Layout",
+        "blockdata_filepath": f"data/layouts/{interior_name}/map.bin",
+        "border_filepath": f"data/layouts/{interior_name}/border.bin",
+    })
+    interior_layout_dir = layouts / interior_name
+    interior_layout_dir.mkdir(parents=True, exist_ok=False)
+    shutil.copyfile(source_block, interior_layout_dir / "map.bin")
+    shutil.copyfile(source_border, interior_layout_dir / "border.bin")
+    registry["layouts"].append(interior_layout)
+    indoor = dict(source_map)
+    indoor.update({
+        "id": interior_id,
+        "name": interior_name,
+        "layout": layout_id,
+        "object_events": [],
+        "warp_events": [
+            {"x": ix, "y": iy, "elevation": 0,
+             "dest_map": area["id"], "dest_warp_id": str(warp_id)}
+            for ix, iy in (exit_a, exit_b)
+        ],
+        "coord_events": [],
+        "bg_events": [],
+    })
+    interior_dir = maps / interior_name
+    interior_dir.mkdir(parents=True, exist_ok=False)
+    (interior_dir / "map.json").write_text(json.dumps(indoor, indent=2) + "\\n")
+    (interior_dir / "scripts.inc").write_text(
+        f"{interior_name}_MapScripts::\\n    .byte 0\\n"
+    )
+    groups["gMapGroup_TownsAndRoutes"].append(interior_name)
+    area["warp_events"].append({
+        "x": x, "y": y, "elevation": 0,
+        "dest_map": interior_id, "dest_warp_id": "0",
+    })
+if len(area["warp_events"]) != 5:
+    raise SystemExit("Expected five paired building entrances")
 (map_dir / "map.json").write_text(json.dumps(area, indent=2) + "\n")
 (map_dir / "scripts.inc").write_text("""MeridianLandingCampPrototype_MapScripts::
     .byte 0
