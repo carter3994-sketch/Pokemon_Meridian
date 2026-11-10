@@ -533,14 +533,55 @@ for ox,oy in ((39,3),(39,11)):
 env_stamp("env_stairs",41,12,1,2)
 for ox in (24,32): env_stamp("env_banner",ox,11,1,2)
 
-# Regenerate indexed atlas and manifest after adding the material variants.
-names=list(ART)
+# Compose overlapping tree crowns at native resolution, then compile their
+# real pixels into metatiles. Transparent corners preserve trees behind them.
+# Only contiguous forest footprints qualify: paths and camp structures cannot
+# be covered by a canopy or receive accidental forest collision.
+forest_source=Image.open(ROOT/"graphics/meridian/landing_camp/forest_conifer.png")
+forest_mask=Image.new("L",forest_source.size)
+forest_mask.putdata([255 if value else 0 for value in forest_source.getdata()])
+forest_canvas=Image.new("P",(W*16,H*16),0)
+forest_canvas.putpalette(forest_source.getpalette())
+forest_placements=[]
+for ty in range(0,H-3,2):
+    offset=1 if (ty//2)%2 else 0
+    for tx in range(offset,W-2,2):
+        if all(PLAN["rows"][y][x]=="T" for y in range(ty,ty+4) for x in range(tx,tx+3)):
+            forest_canvas.paste(forest_source,(tx*16,ty*16),forest_mask)
+            forest_placements.append([tx,ty])
+for ty,row in enumerate(PLAN["rows"]):
+    for tx,cell in enumerate(row):
+        if cell!="T": continue
+        phase=(tx+2*ty)%5
+        grid[ty][tx]="grass_dark" if phase==0 else f"grass_dark_material_{phase}"
+        part=forest_canvas.crop((tx*16,ty*16,tx*16+16,ty*16+16))
+        if not any(part.getdata()): continue
+        part.putdata([15 if value==0 else value for value in part.getdata()])
+        name=f"env_dense_forest_{tx}_{ty}"
+        ART[name]=part
+        module_slots[name]=9
+        grid[ty][tx]=name
+
+# Identical forest cells share metatile IDs as well as pixel tiles. Preserve
+# all building/door IDs independently so behavior cannot spread to a wall.
+forest_signatures={}
+forest_aliases={}
+for name,image in ART.items():
+    if name.startswith("env_dense_forest_"):
+        forest_aliases[name]=forest_signatures.setdefault(tuple(image.getdata()),name)
+for ty,row in enumerate(grid):
+    for tx,name in enumerate(row): grid[ty][tx]=forest_aliases.get(name,name)
+
+# Export only cells consumed by the actual map and its underlays. Retired
+# studies should not consume metatile IDs in the native game asset export.
+used_art={name for row in grid for name in row}|set(underlays.values())
+names=[name for name in ART if name in used_art]
 atlas=Image.new("P",(16*8,16*((len(names)+7)//8)),0)
 atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name],((i%8)*16,(i//8)*16))
 atlas.save(OUT/"camp_original_metatiles_indexed.png")
-(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"underlays":underlays,"engine_integrated":False},indent=2)+"\n")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"underlays":underlays,"forest_placements":forest_placements,"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
