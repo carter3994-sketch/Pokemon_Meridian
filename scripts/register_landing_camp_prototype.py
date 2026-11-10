@@ -40,22 +40,35 @@ registry["layouts"].append(layout)
 (layouts_path).write_text(json.dumps(registry, indent=2) + "\n")
 map_dir = maps / area["name"]
 map_dir.mkdir(parents=True, exist_ok=False)
+# Confirm every NPC can be approached from the debug arrival point, not
+# merely that an isolated walkable tile exists beside the NPC.
+from collections import deque
+mask = json.loads((root / "data/meridian_plans/landing_camp_collision_draft.json").read_text())
+arrival = json.loads((root / "data/meridian_plans/landing_camp_arrival.json").read_text())["landmarks"]["arrival"]
+reachable = {tuple(arrival)}
+queue = deque(reachable)
+while queue:
+    cx, cy = queue.popleft()
+    for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        nx, ny = cx + dx, cy + dy
+        if (0 <= nx < mask["width"] and 0 <= ny < mask["height"]
+                and mask["rows"][ny][nx] == "0" and (nx, ny) not in reachable):
+            reachable.add((nx, ny))
+            queue.append((nx, ny))
+
 # Populate the test camp with two temporary, interactable expedition staff.
 # These use existing Emerald sprites until approved Meridian artwork is ready.
 for x, y, gfx, script in (
     (14, 23, "OBJ_EVENT_GFX_SCIENTIST_1", "MeridianLandingCamp_EventScript_Researcher"),
     (20, 21, "OBJ_EVENT_GFX_FAT_MAN", "MeridianLandingCamp_EventScript_Quartermaster"),
 ):
-    mask = json.loads((root / "data/meridian_plans/landing_camp_collision_draft.json").read_text())
     if mask["rows"][y][x] != "0":
         raise SystemExit(f"Camp NPC location blocked: {x}, {y}")
     if not any(
-        0 <= x + dx < mask["width"]
-        and 0 <= y + dy < mask["height"]
-        and mask["rows"][y + dy][x + dx] == "0"
+        (x + dx, y + dy) in reachable
         for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0))
     ):
-        raise SystemExit(f"Camp NPC has no walkable interaction tile: {x}, {y}")
+        raise SystemExit(f"Camp NPC cannot be approached from arrival: {x}, {y}")
     area["object_events"].append({
         "graphics_id": gfx, "x": x, "y": y, "elevation": 3,
         "movement_type": "MOVEMENT_TYPE_FACE_DOWN",
