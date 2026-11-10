@@ -39,10 +39,10 @@ jobs:
         run: |
           python3 -m py_compile scripts/register_landing_camp_prototype.py
           python3 scripts/audit_landing_camp_metatiles.py
-          python3 scripts/generate_landing_camp_metatile_prototype.py
-          python3 scripts/stage_landing_camp_map_templates.py
           python3 -m pip install Pillow
           python3 scripts/stage_meridian_shady_forest_tileset.py
+          python3 scripts/generate_landing_camp_metatile_prototype.py
+          python3 scripts/stage_landing_camp_map_templates.py
           python3 scripts/register_meridian_shady_forest_tileset.py
           python3 scripts/register_landing_camp_prototype.py
           grep -F 'MeridianLandingCampPrototype_MapScripts::' data/maps/MeridianLandingCampPrototype/scripts.inc
