@@ -46,6 +46,15 @@ jobs:
           assert atlas.mode == "P"
           assert preview.size == (768, 640)
           assert len(set(atlas.getdata())) <= 16
+          import xml.etree.ElementTree as ET
+          tmx = ET.parse(p / "camp_48x40_editable.tmx").getroot()
+          assert (tmx.attrib["width"], tmx.attrib["height"]) == ("48", "40")
+          layers = tmx.findall("layer")
+          assert len(layers) == 2
+          for layer in layers:
+              entries = [int(v) for v in layer.find("data").text.replace("\\n","").split(",") if v.strip()]
+              assert len(entries) == 48*40, (layer.attrib["name"],len(entries))
+          assert layers[1].attrib["visible"] == "0"
           print("Verified indexed original metatile art and 48x40 preview")
           PY
       - name: Upload original camp graphics workbench
