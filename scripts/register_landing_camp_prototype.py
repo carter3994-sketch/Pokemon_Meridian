@@ -24,6 +24,13 @@ if area["name"] in groups["gMapGroup_TownsAndRoutes"]:
     raise SystemExit("Prototype map already registered")
 if len(area["warp_events"]) or len(area["coord_events"]):
     raise SystemExit("Prototype map must not contain live warps or triggers")
+# Fail early if the new IDs collide with existing maps or layouts.
+if any(x["name"] == layout["name"] for x in registry["layouts"]):
+    raise SystemExit("Prototype layout name already registered")
+if any(area["name"] in names for key, names in groups.items() if key != "group_order"):
+    raise SystemExit("Prototype map name collides with another group")
+if layout["width"] * layout["height"] * 2 != (stage / "landing_camp_arrival_placeholder_map.bin").stat().st_size:
+    raise SystemExit("Invalid generated blockdata length")
 dest = layouts / "MeridianLandingCampPrototype"
 dest.mkdir(parents=True, exist_ok=False)
 shutil.copyfile(stage / "landing_camp_arrival_placeholder_map.bin", dest / "map.bin")
