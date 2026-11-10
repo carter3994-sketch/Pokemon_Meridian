@@ -9,6 +9,7 @@ on:
       - 'scripts/generate_landing_camp_metatile_prototype.py'
       - 'scripts/audit_landing_camp_metatiles.py'
       - 'scripts/render_landing_camp_metatile_atlas.py'
+      - 'scripts/build_meridian_camp_graphics.py'
       - '.github/workflows/landing-camp-integration.yml'
 concurrency:
   group: landing-camp-integration-${{ github.ref }}
@@ -33,6 +34,27 @@ jobs:
         run: |
           python3 -m pip install --user Pillow
           python3 scripts/render_landing_camp_metatile_atlas.py
+      - name: Build original Meridian camp graphics workbench
+        run: |
+          python3 scripts/build_meridian_camp_graphics.py
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          p = Path("build/meridian_camp_art")
+          atlas = Image.open(p / "camp_original_metatiles_indexed.png")
+          preview = Image.open(p / "camp_48x40_art_direction_preview.png")
+          assert atlas.mode == "P"
+          assert preview.size == (768, 640)
+          assert len(set(atlas.getdata())) <= 16
+          print("Verified indexed original metatile art and 48x40 preview")
+          PY
+      - name: Upload original camp graphics workbench
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-camp-original-graphics-workbench
+          path: build/meridian_camp_art/
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload visual metatile atlases
         uses: actions/upload-artifact@v4
         with:
