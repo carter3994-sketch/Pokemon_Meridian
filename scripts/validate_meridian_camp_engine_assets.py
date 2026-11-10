@@ -34,8 +34,8 @@ for word in words:
     mid = word & 511
     bank_id=(word&1023)//512
     for ref in metas[bank_id][mid*8:mid*8+8]:
-        assert bank_id*512 <= (ref & 1023) < (bank_id+1)*512
-        assert (bank / f"palettes/{ref >> 12:02d}.pal").exists()
+        assert 0 <= (ref & 1023) < 1024
+        assert ((primary if ref >> 12 < 6 else bank) / f"palettes/{ref >> 12:02d}.pal").exists()
 
 arrival = tuple(plan["landmarks"]["arrival"])
 def walkable(x, y):

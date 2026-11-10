@@ -38,7 +38,7 @@ def pal_file(path):
  return [tuple(map(int,x.split())) for x in lines[3:19]]
 pals={}
 for i in range(6):
- pals[i]=pal_file(ROOT/f"data/tilesets/primary/general/palettes/{i:02d}.pal")
+ pals[i]=pal_file((primary_path/f"palettes/{i:02d}.pal") if (primary_path/f"palettes/{i:02d}.pal").exists() else ROOT/f"data/tilesets/primary/general/palettes/{i:02d}.pal")
 for i in range(6,16):
  p=(registered/f"palettes/{i:02d}.pal") if (registered/f"palettes/{i:02d}.pal").exists() else (stage/f"palettes/{i:02d}.pal")
  pals[i]=pal_file(p if p.exists() else (registered/"palettes/06.pal" if (registered/"palettes/06.pal").exists() else stage/"palettes/06.pal"))

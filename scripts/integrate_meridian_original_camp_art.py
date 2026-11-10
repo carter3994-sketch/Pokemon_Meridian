@@ -45,23 +45,34 @@ attrs=[[0]*512,[0]*512]
 map_ids={}
 for mid in used_ids:
     palette=slots.get(names[mid],6)
-    bank=0 if palette==6 else 1
+    bank=0 if palette==6 or names[mid].startswith("env_") else 1
     base=bank*512
     map_ids[mid]=base+mid
     mx=(mid%(atlas.width//16))*16
     my=(mid//(atlas.width//16))*16
-    for slot,(sy,sx) in enumerate(((0,0),(0,8),(8,0),(8,8))):
-        pixels=tuple(atlas.getpixel((mx+sx+x,my+sy+y)) for y in range(8) for x in range(8))
-        assert all(0<=c<16 for c in pixels)
-        if pixels not in caches[bank]:
-            index=len(tiles[bank])
-            assert index<512, f'Bank {bank} exceeds 512 tiles'
-            tiles[bank].append(pixels)
-            for flip_y in (False,True):
-                for flip_x in (False,True):
-                    oriented=tuple(pixels[(7-y if flip_y else y)*8+(7-x if flip_x else x)] for y in range(8) for x in range(8))
-                    caches[bank].setdefault(oriented,index|(0x400 if flip_x else 0)|(0x800 if flip_y else 0))
-        metas[bank][mid*8+slot]=(palette<<12)|base|caches[bank][pixels]
+    # Normal cells have one art layer. Ship cells keep true index-0
+    # transparency and put ocean pixels on the lower GBA background layer.
+    underlay=manifest.get('underlays',{}).get(names[mid])
+    sources=[(underlay,0),(names[mid],1)] if underlay else [(names[mid],0)]
+    for source_name,layer in sources:
+        source_mid=names.index(source_name)
+        source_palette=slots.get(source_name,6)
+        source_bank=0 if source_palette==6 or source_name.startswith('env_') else 1
+        source_base=source_bank*512
+        source_mx=(source_mid%(atlas.width//16))*16
+        source_my=(source_mid//(atlas.width//16))*16
+        for slot,(sy,sx) in enumerate(((0,0),(0,8),(8,0),(8,8))):
+            pixels=tuple(atlas.getpixel((source_mx+sx+x,source_my+sy+y)) for y in range(8) for x in range(8))
+            assert all(0<=c<16 for c in pixels)
+            if pixels not in caches[source_bank]:
+                index=len(tiles[source_bank])
+                assert index<512, f'Bank {source_bank} exceeds 512 tiles'
+                tiles[source_bank].append(pixels)
+                for flip_y in (False,True):
+                    for flip_x in (False,True):
+                        oriented=tuple(pixels[(7-y if flip_y else y)*8+(7-x if flip_x else x)] for y in range(8) for x in range(8))
+                        caches[source_bank].setdefault(oriented,index|(0x400 if flip_x else 0)|(0x800 if flip_y else 0))
+            metas[bank][mid*8+layer*4+slot]=(source_palette<<12)|source_base|caches[source_bank][pixels]
 packed_banks=[]
 for bank,dest in enumerate(DESTS):
     dest.mkdir(parents=True,exist_ok=True)
@@ -78,22 +89,26 @@ for bank,dest in enumerate(DESTS):
     sheet.save(dest/'tiles.png')
     (dest/'tiles.4bpp').write_bytes(packed)
     (dest/'metatiles.bin').write_bytes(struct.pack('<4096H',*metas[bank]))
-# Decode hardware tile references, including flips, back to source pixels.
+# Decode every visible layer reference, including flips, to source pixels.
 for mid in used_ids:
     bank=map_ids[mid]//512
-    for slot in range(4):
-        ref=metas[bank][mid*8+slot]
-        index=(ref&1023)-bank*512
-        decoded=[]
-        for y in range(8):
-            for x in range(8):
-                i=(7-y if ref&0x800 else y)*8+(7-x if ref&0x400 else x)
-                decoded.append((packed_banks[bank][index*32+i//2]>>(4*(i%2)))&15)
-        sx=(mid%(atlas.width//16))*16+(slot%2)*8
-        sy=(mid//(atlas.width//16))*16+(slot//2)*8
-        expected=[atlas.getpixel((sx+x,sy+y)) for y in range(8) for x in range(8)]
-        assert decoded==expected,(mid,slot)
-        assert metas[bank][mid*8+4:mid*8+8]==[(6<<12)|bank*512]*4
+    underlay=manifest.get('underlays',{}).get(names[mid])
+    sources=[(underlay,0),(names[mid],1)] if underlay else [(names[mid],0)]
+    for source_name,layer in sources:
+        source_mid=names.index(source_name)
+        for slot in range(4):
+            ref=metas[bank][mid*8+layer*4+slot]
+            tile_bank=(ref&1023)//512
+            index=ref&511
+            decoded=[]
+            for y in range(8):
+                for x in range(8):
+                    i=(7-y if ref&0x800 else y)*8+(7-x if ref&0x400 else x)
+                    decoded.append((packed_banks[tile_bank][index*32+i//2]>>(4*(i%2)))&15)
+            sx=(source_mid%(atlas.width//16))*16+(slot%2)*8
+            sy=(source_mid//(atlas.width//16))*16+(slot//2)*8
+            expected=[atlas.getpixel((sx+x,sy+y)) for y in range(8) for x in range(8)]
+            assert decoded==expected,(mid,layer,slot)
 plan=json.loads((ROOT/'data/meridian_plans/landing_camp_arrival.json').read_text())
 behaviors=re.findall(r'\bMB_[A-Z0-9_]+\b',(ROOT/'include/constants/metatile_behaviors.h').read_text().split('};',1)[0])
 for key in ('medical_door','research_door','hq_door','supply_door','quarters_door'):
@@ -103,8 +118,20 @@ for key in ('medical_door','research_door','hq_door','supply_door','quarters_doo
     attrs[map_ids[mid]//512][mid]=behaviors.index('MB_NON_ANIMATED_DOOR')
 for bank,dest in enumerate(DESTS):
     (dest/'metatile_attributes.bin').write_bytes(struct.pack('<512H',*attrs[bank]))
+# Primary palette slots are private to the camp, with valid defaults for
+# unused slots. Secondary slots 6..15 remain in the secondary table.
+for slot in range(6):
+    target=DESTS[0]/f'palettes/{slot:02d}.pal'
+    target.parent.mkdir(parents=True,exist_ok=True)
+    target.write_bytes((ROOT/f'data/tilesets/primary/general/palettes/{slot:02d}.pal').read_bytes())
+# Replace unused secondary palette slots too; no staged external colors
+# are needed by this original-art build.
+for slot in range(6,16):
+    target=DESTS[1]/f'palettes/{slot:02d}.pal'
+    target.parent.mkdir(parents=True,exist_ok=True)
+    target.write_text('JASC-PAL\n0100\n16\n'+''.join(f'{r} {g} {b}\n' for r,g,b in manifest['palette']))
 for slot,palette in manifest.get('palettes',{'6':manifest['palette']}).items():
-    dest=DESTS[1]/f'palettes/{int(slot):02d}.pal'
+    dest=DESTS[0 if int(slot)<6 else 1]/f'palettes/{int(slot):02d}.pal'
     dest.parent.mkdir(parents=True,exist_ok=True)
     dest.write_text('JASC-PAL\n0100\n16\n'+''.join(f'{r} {g} {b}\n' for r,g,b in palette))
 words=[map_ids[gid-1]|(0xC00 if blocked else 0)|0x3000 for gid,blocked in zip(gids,collision)]
@@ -114,14 +141,14 @@ words=[map_ids[gid-1]|(0xC00 if blocked else 0)|0x3000 for gid,blocked in zip(gi
 symbol='MeridianCampEnvironment'
 base='data/tilesets/primary/meridian_camp_environment/'
 registrations={
-    'src/data/tilesets/graphics.h':f'const u32 gTilesetTiles_{symbol}[] = INCGFX_U32("{base}tiles.png", ".4bpp.fastSmol", "-num_tiles 512 -Wnum_tiles");\n',
+    'src/data/tilesets/graphics.h':f'const u32 gTilesetTiles_{symbol}[] = INCGFX_U32("{base}tiles.png", ".4bpp.fastSmol", "-num_tiles 512 -Wnum_tiles");\n' + f'const u16 ALIGNED(4) gTilesetPalettes_{symbol}[][16] =\n{{\n' + ''.join(f'    INCGFX_U16("{base}palettes/{i:02d}.pal", ".gbapal"),\n' for i in range(6)) + '};\n',
     'src/data/tilesets/metatiles.h':f'const u16 gMetatiles_{symbol}[] = INCBIN_U16("{base}metatiles.bin");\nconst u16 gMetatileAttributes_{symbol}[] = INCBIN_U16("{base}metatile_attributes.bin");\n',
     'src/data/tilesets/headers.h':f'''const struct Tileset gTileset_{symbol} =
 {{
     .isCompressed = TRUE,
     .isSecondary = FALSE,
     .tiles = gTilesetTiles_{symbol},
-    .palettes = gTilesetPalettes_General,
+    .palettes = gTilesetPalettes_{symbol},
     .metatiles = gMetatiles_{symbol},
     .metatileAttributes = gMetatileAttributes_{symbol},
     .callback = NULL,

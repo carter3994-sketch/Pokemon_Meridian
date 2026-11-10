@@ -413,7 +413,7 @@ for qy in range(5):
 ship_image=Image.open(ROOT/"graphics/meridian/landing_camp/expedition_ship.png")
 assert ship_image.mode=="P" and ship_image.size==(112,48)
 ship_palette=[tuple(ship_image.getpalette()[i:i+3]) for i in range(0,48,3)]
-ship_image.putdata([15 if value==0 else value for value in ship_image.getdata()])
+# Ship index 0 stays transparent; packed metatiles use an ocean underlay.
 for qy in range(4):
     for qx in range(7):
         xx,yy=2+qx,14+qy
@@ -474,6 +474,65 @@ for asset,slot,(ox,oy),zone in module_specs:
             module_slots[name]=slot
             if set(ART[name].getdata())!={15}: grid[oy+qy][ox+qx]=name
 
+# Reference-based environment modules, with their own primary palette slots.
+env_specs=[("env_cliff_wall",0),("env_cliff_lip",0),("env_waterfall",1),
+           ("env_cave",2),("env_ruins",3),("env_stairs",0),("env_banner",4),("env_shore",1),("env_ocean",1)]
+for asset,slot in env_specs:
+    sprite=Image.open(ROOT/f"graphics/meridian/landing_camp/{asset}.png")
+    assert sprite.mode=="P" and sprite.width%16==0 and sprite.height%16==0
+    palette=[tuple(sprite.getpalette()[i:i+3]) for i in range(0,48,3)]
+    if str(slot) in module_palettes: assert module_palettes[str(slot)]==palette
+    module_palettes[str(slot)]=palette
+    sprite.putdata([15 if value==0 else value for value in sprite.getdata()])
+    for qy in range(sprite.height//16):
+        for qx in range(sprite.width//16):
+            name=f"{asset}_{qx}_{qy}"
+            ART[name]=sprite.crop((qx*16,qy*16,qx*16+16,qy*16+16))
+            module_slots[name]=slot
+# Flip variants preserve the authored material while avoiding identical slabs.
+for asset in ("env_cliff_wall_0_0","env_cliff_wall_0_1","env_cliff_lip_0_0"):
+    ART[asset+"_flip"]=ART[asset].transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    module_slots[asset+"_flip"]=0
+shore=ART["env_shore_0_0"]
+for direction,rotation in (("north",None),("south",Image.Transpose.ROTATE_180),
+                            ("east",Image.Transpose.ROTATE_270),("west",Image.Transpose.ROTATE_90)):
+    ART[f"env_shore_{direction}"]=shore.copy() if rotation is None else shore.transpose(rotation)
+    module_slots[f"env_shore_{direction}"]=1
+# Four distinct ocean metatiles from the authored seamless water patch.
+for phase in range(4):
+    name=f"env_ocean_{phase}"
+    ART[name]=ART[f"env_ocean_{phase%2}_{phase//2}"].copy()
+    module_slots[name]=1
+for direction in ("north","south","east","west"):
+    name=f"env_shore_{direction}"
+    ART[name+"_alt"]=ART[name].transpose(Image.Transpose.FLIP_LEFT_RIGHT if direction in ("north","south") else Image.Transpose.FLIP_TOP_BOTTOM)
+    module_slots[name+"_alt"]=1
+underlays={}
+for yy,row in enumerate(PLAN["rows"]):
+    for xx,ch in enumerate(row):
+        if ch in "^C":
+            base="env_cliff_lip_0_0" if yy==0 or PLAN["rows"][yy-1][xx] not in "^C" else f"env_cliff_wall_0_{yy%2}"
+            grid[yy][xx]=base+("_flip" if (xx+yy)%2 else "")
+        elif ch=="R":
+            phase=(xx+2*yy)%5
+            grid[yy][xx]="grass" if phase==0 else f"grass_material_{phase}"
+        elif ch=="~" and grid[yy][xx].startswith("expedition_ship_"):
+            underlays[grid[yy][xx]]=f"env_ocean_{xx%2+2*(yy%2)}"
+        elif ch=="~":
+            land=lambda x,y: 0<=x<W and 0<=y<H and PLAN["rows"][y][x] not in "~D"
+            facing=next((direction for direction,x,y in (("north",xx,yy-1),("south",xx,yy+1),("east",xx+1,yy),("west",xx-1,yy)) if land(x,y)),None)
+            grid[yy][xx]=(f"env_shore_{facing}"+("_alt" if (xx+yy)%2 else "")) if facing else f"env_ocean_{xx%2+2*(yy%2)}"
+def env_stamp(asset,ox,oy,width,height):
+    for qy in range(height):
+        for qx in range(width): grid[oy+qy][ox+qx]=f"{asset}_{qx}_{qy}"
+env_stamp("env_ruins",29,0,4,4)
+env_stamp("env_cave",43,8,3,3)
+for ox,oy in ((39,3),(39,11)):
+    assert all(PLAN["rows"][y][x]=="^" for y in range(oy,oy+4) for x in range(ox,ox+2))
+    env_stamp("env_waterfall",ox,oy,2,4)
+env_stamp("env_stairs",41,12,1,2)
+for ox in (24,32): env_stamp("env_banner",ox,11,1,2)
+
 # Regenerate indexed atlas and manifest after adding the material variants.
 names=list(ART)
 atlas=Image.new("P",(16*8,16*((len(names)+7)//8)),0)
@@ -481,11 +540,17 @@ atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name],((i%8)*16,(i//8)*16))
 atlas.save(OUT/"camp_original_metatiles_indexed.png")
-(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"underlays":underlays,"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
-        preview.paste(ART[grid[y][x]].convert("RGB"),(x*16,y*16))
+        name=grid[y][x]
+        if name in underlays:
+            preview.paste(ART[underlays[name]].convert("RGB"),(x*16,y*16))
+            mask=Image.new("L",(16,16));mask.putdata([255 if value else 0 for value in ART[name].getdata()])
+            preview.paste(ART[name].convert("RGB"),(x*16,y*16),mask)
+        else:
+            preview.paste(ART[name].convert("RGB"),(x*16,y*16))
 preview.save(OUT/"camp_48x40_art_direction_preview.png")
 # Export the same authored cells to Tiled, the widely used map editor.
 # Tiled IDs are 1-based; this TMX is a review/editing asset, NOT GBA map.bin.
@@ -509,6 +574,14 @@ for yy in range(H):
 for key in ("medical_door","research_door","supply_door","quarters_door"):
     dx,dy=PLAN["landmarks"][key]
     collision["rows"][dy][dx]="0"
+# Environment footprint collisions: stairs and the ruins floor are traversable.
+for yy,row in enumerate(PLAN["rows"]):
+    for xx,ch in enumerate(row):
+        if ch=="R": collision["rows"][yy][xx]="0"
+for qy,row in enumerate(("1111","1001","1001","0000")):
+    for qx,value in enumerate(row): collision["rows"][qy][29+qx]=value
+for yy in (12,13): collision["rows"][yy][41]="0"
+cx,cy=PLAN["landmarks"]["cave_entrance"];collision["rows"][cy][cx]="0"
 assert PLAN["landmarks"]["hq_door"]==[28,10]
 tmx = ET.Element("map", {
     "version":"1.10","tiledversion":"1.11.2","orientation":"orthogonal",

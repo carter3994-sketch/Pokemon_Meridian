@@ -78,6 +78,20 @@ jobs:
             build/meridian_camp_art/
           if-no-files-found: warn
           retention-days: 14
+      - name: Preserve native tilesets and map inputs for Porymap integration
+        if: always() && hashFiles('data/tilesets/primary/meridian_camp_environment/tiles.4bpp') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-native-tileset
+          path: |
+            data/tilesets/primary/meridian_camp_environment/
+            data/tilesets/secondary/meridian_shady_forest/
+            data/layouts/MeridianLandingCampPrototype/
+            data/maps/MeridianLandingCamp*/
+            build/meridian_candidate_review/original_art_engine_integration.json
+            build/meridian_candidate_review/engine_asset_validation.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Enforce quality gates
         if: always()
         env:
