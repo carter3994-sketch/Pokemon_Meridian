@@ -276,6 +276,20 @@
 #define VAR_UNUSED_0x40FE                                0x40FE // Unused Var
 #define VAR_UNUSED_0x40FF                                0x40FF // Unused Var
 
+// Meridian persistent world-state slots. These aliases use Emerald's unused
+// permanent vars; never use the corresponding VAR_UNUSED_ names for new events.
+// Values are saved with the normal event-variable save data.
+// Reserved values are NOT yet written by gameplay scripts.
+#define VAR_MERIDIAN_STORY_CHAPTER                      0x40F7
+#define VAR_MERIDIAN_LANDING_CAMP_PHASE                 0x40F8
+#define VAR_MERIDIAN_CENTRAL_CITY_PHASE                 0x40F9
+#define VAR_MERIDIAN_NATIVE_RELATIONS                   0x40FA
+#define VAR_MERIDIAN_REFUGEE_RELATIONS                  0x40FB
+#define VAR_MERIDIAN_CRIME_HEAT                         0x40FC
+#define VAR_MERIDIAN_ENDING_ID                          0x40FD
+#define VAR_MERIDIAN_WORLD_CHOICE_BITS                  0x40FE
+#define VAR_MERIDIAN_POSTGAME_PHASE                     0x40FF
+
 #define VARS_END                                         0x40FF
 #define VARS_COUNT                                       (VARS_END - VARS_START + 1)
 
