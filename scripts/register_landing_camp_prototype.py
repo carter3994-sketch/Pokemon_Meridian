@@ -41,7 +41,7 @@ registry["layouts"].append(layout)
 map_dir = maps / area["name"]
 map_dir.mkdir(parents=True, exist_ok=False)
 (map_dir / "map.json").write_text(json.dumps(area, indent=2) + "\n")
-(map_dir / "scripts.inc").write_text("MeridianLandingCampPrototype_MapScripts::\\n    .byte 0\\n")
+(map_dir / "scripts.inc").write_text("MeridianLandingCampPrototype_MapScripts::\n    .byte 0\n")
 groups["gMapGroup_TownsAndRoutes"].append(area["name"])
 group_path.write_text(json.dumps(groups, indent=2) + "\n")
 print("Registered isolated prototype in disposable checkout; no entry point or gameplay warps")
