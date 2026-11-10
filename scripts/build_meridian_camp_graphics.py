@@ -389,7 +389,7 @@ atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name],((i%8)*16,(i//8)*16))
 atlas.save(OUT/"camp_original_metatiles_indexed.png")
-(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\\n")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
