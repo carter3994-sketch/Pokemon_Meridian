@@ -1,23 +1,6 @@
-name: Meridian Landing Camp Map Integration Test
+name: Legacy Landing Camp Placeholder Diagnostic
 on:
   workflow_dispatch:
-  push:
-    branches: [develop]
-    paths:
-      - 'scripts/register_landing_camp_prototype.py'
-      - 'scripts/stage_landing_camp_map_templates.py'
-      - 'scripts/generate_landing_camp_metatile_prototype.py'
-      - 'scripts/audit_landing_camp_metatiles.py'
-      - 'scripts/render_landing_camp_metatile_atlas.py'
-      - 'scripts/build_meridian_camp_graphics.py'
-      - 'scripts/register_meridian_shady_forest_tileset.py'
-      - 'scripts/render_meridian_actual_engine_map.py'
-      - 'scripts/qa_meridian_landing_camp_repetition.py'
-      - 'scripts/qa_meridian_rendered_tileset.py'
-      - 'scripts/stage_meridian_shady_forest_tileset.py'
-      - 'scripts/validate_meridian_art_sources.py'
-      - 'data/meridian_plans/landing_camp_asset_inventory.json'
-      - '.github/workflows/landing-camp-integration.yml'
 concurrency:
   group: landing-camp-integration-${{ github.ref }}
   cancel-in-progress: true

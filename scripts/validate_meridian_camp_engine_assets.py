@@ -30,11 +30,15 @@ raw = (bank / "tiles.4bpp").read_bytes()
 assert len(raw) == 16384 and raw[:32] == bytes(32)
 primary_raw=(primary/"tiles.4bpp").read_bytes()
 assert len(primary_raw)==16384 and primary_raw[:32]==bytes(32)
+# Slots 13..15 are reserved for field UI and are not loaded as map colors.
+fieldmap=(ROOT/"include/fieldmap.h").read_text()
+num_palettes=int(re.search(r"#define NUM_PALS_TOTAL (\d+)",fieldmap).group(1))
 for word in words:
     mid = word & 511
     bank_id=(word&1023)//512
     for ref in metas[bank_id][mid*8:mid*8+8]:
         assert 0 <= (ref & 1023) < 1024
+        assert ref >> 12 < num_palettes, "Map asset uses reserved/unloaded UI palette"
         assert ((primary if ref >> 12 < 6 else bank) / f"palettes/{ref >> 12:02d}.pal").exists()
 
 arrival = tuple(plan["landmarks"]["arrival"])

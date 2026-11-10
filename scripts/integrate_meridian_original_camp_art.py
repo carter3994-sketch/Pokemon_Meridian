@@ -45,6 +45,7 @@ attrs=[[0]*512,[0]*512]
 map_ids={}
 for mid in used_ids:
     palette=slots.get(names[mid],6)
+    assert 0<=palette<int(re.search(r'#define NUM_PALS_TOTAL (\d+)',(ROOT/'include/fieldmap.h').read_text()).group(1)), 'Map palette exceeds engine limit'
     bank=0 if palette==6 or names[mid].startswith("env_") else 1
     base=bank*512
     map_ids[mid]=base+mid

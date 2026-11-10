@@ -454,8 +454,8 @@ module_specs=[
     ("medical_center",10,(7,9),"M"),
     ("research_lab",11,(17,8),"L"),
     ("supply_depot",12,(39,20),"S"),
-    ("living_quarters",13,(40,26),"Q"),
-    ("provision_store",14,(25,22),None),
+    ("living_quarters",4,(40,26),"Q"),
+    ("provision_store",5,(25,22),None),
 ]
 for yy,row in enumerate(PLAN["rows"]):
     for xx,ch in enumerate(row):
@@ -476,7 +476,7 @@ for asset,slot,(ox,oy),zone in module_specs:
 
 # Reference-based environment modules, with their own primary palette slots.
 env_specs=[("env_cliff_wall",0),("env_cliff_lip",0),("env_waterfall",1),
-           ("env_cave",2),("env_ruins",3),("env_stairs",0),("env_banner",4),("env_shore",1),("env_ocean",1)]
+           ("env_cave",2),("env_ruins",3),("env_stairs",0),("env_banner",7),("env_shore",1),("env_ocean",1)]
 for asset,slot in env_specs:
     sprite=Image.open(ROOT/f"graphics/meridian/landing_camp/{asset}.png")
     assert sprite.mode=="P" and sprite.width%16==0 and sprite.height%16==0
