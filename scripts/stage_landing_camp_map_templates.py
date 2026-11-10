@@ -51,4 +51,15 @@ for name in ("medical_door", "research_door", "hq_door", "supply_door", "quarter
 # there are no destination maps yet, and fake warps would break gameplay.
 for filename, value in (("layout_template.json", layout), ("map_template.json", area)):
     (out / filename).write_text(json.dumps(value, indent=2) + "\n")
-print("Staged map and layout templates; no engine registration performed")
+# Validate the staged structure against real engine source conventions.
+existing_layouts = json.loads((root / "data/layouts/layouts.json").read_text())["layouts"]
+existing_maps = json.loads((root / "data/maps/LittlerootTown/map.json").read_text())
+if set(layout) != set(existing_layouts[0]):
+    raise SystemExit("Layout template keys differ from engine source")
+if set(area) != set(existing_maps):
+    raise SystemExit("Map template keys differ from engine source")
+if layout["width"] * layout["height"] * 2 != (out / "landing_camp_arrival_placeholder_map.bin").stat().st_size:
+    raise SystemExit("Map blockdata size does not match staged layout")
+if any(event["dest_map"] == "MAP_DYNAMIC" for event in area["warp_events"]):
+    raise SystemExit("Unresolved dynamic warp in staged map")
+print("Staged and checked engine-shaped map/layout templates; no registration performed")
