@@ -18,12 +18,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Generate and register disposable debug map
         run: |
+          python3 -m py_compile scripts/register_landing_camp_prototype.py
           python3 scripts/generate_landing_camp_metatile_prototype.py
           python3 scripts/stage_landing_camp_map_templates.py
           python3 scripts/register_landing_camp_prototype.py
           grep -F 'MeridianLandingCampPrototype_MapScripts::' data/maps/MeridianLandingCampPrototype/scripts.inc
           grep -F 'data/maps/MeridianLandingCampPrototype/scripts.inc' data/event_scripts.s
           grep -F 'MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE' src/new_game.c
+          python3 -c 'from pathlib import Path; s=Path("data/event_scripts.s").read_text(); assert "\\\\n" not in s[-150:], "literal backslash-n in assembly"'
       - name: Install compiler
         run: |
           sudo apt-get update
