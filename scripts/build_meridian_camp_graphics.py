@@ -446,16 +446,16 @@ for yy in range(0,H-3,4):
                     name=f"conifer_{qx}_{qy}"
                     if set(ART[name].getdata())!={15}: grid[yy+qy][xx+qx]=name
 
-# Reference-based expedition modules. Existing five door coordinates remain
-# stable; source-zone slabs are replaced by complete building silhouettes.
+# Reference-based expedition modules. Placement and paired entrance coordinates
+# follow the settlement arrangement encoded in the navigation source.
 module_palettes={}
 module_slots={}
 module_specs=[
-    ("medical_center",10,(7,9),"M"),
+    ("medical_center",10,(17,15),"M"),
     ("research_lab",11,(17,8),"L"),
-    ("supply_depot",12,(39,20),"S"),
-    ("living_quarters",4,(40,26),"Q"),
-    ("provision_store",5,(25,22),None),
+    ("supply_depot",12,(32,12),"S"),
+    ("living_quarters",4,(37,22),"Q"),
+    ("provision_store",5,(32,17),None),
 ]
 for yy,row in enumerate(PLAN["rows"]):
     for xx,ch in enumerate(row):
@@ -531,7 +531,7 @@ for ox,oy in ((39,3),(39,11)):
     assert all(PLAN["rows"][y][x]=="^" for y in range(oy,oy+4) for x in range(ox,ox+2))
     env_stamp("env_waterfall",ox,oy,2,4)
 env_stamp("env_stairs",41,12,1,2)
-for ox in (24,32): env_stamp("env_banner",ox,11,1,2)
+for ox in (24,31): env_stamp("env_banner",ox,11,1,2)
 
 # Compose overlapping tree crowns at native resolution, then compile their
 # real pixels into metatiles. Transparent corners preserve trees behind them.

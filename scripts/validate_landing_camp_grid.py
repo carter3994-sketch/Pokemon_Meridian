@@ -37,8 +37,8 @@ while queue:
             visited.add((nx, ny))
             queue.append((nx, ny))
 targets = {
-    "medical": (8, 11), "lab": (18, 11), "HQ": (28, 10),
-    "supply": (41, 22), "quarters": (41, 27),
+    "medical": (18, 17), "lab": (18, 11), "HQ": (28, 10),
+    "supply": (34, 14), "quarters": (38, 23),
     "forest": (23, 39), "coast": (44, 29), "cave": (44, 10),
     "ruins": (31, 4), "north trail": (23, 0),
 }

@@ -4,6 +4,9 @@ on:
   push:
     branches: [develop]
     paths:
+      - 'data/meridian_plans/landing_camp_arrival.json'
+      - 'data/meridian_plans/landing_camp_collision_draft.json'
+      - 'docs/LANDING_CAMP_GRID_48x40_V03.md'
       - 'graphics/meridian/landing_camp/**'
       - 'scripts/register_meridian_shady_forest_tileset.py'
       - 'scripts/validate_meridian_camp_engine_assets.py'
@@ -26,6 +29,9 @@ jobs:
         run: python3 -m pip install --user Pillow
       - name: Generate original graphics and engine map scaffolding
         run: |
+          python3 scripts/validate_landing_camp_grid.py
+          python3 scripts/export_landing_camp_plan.py
+          python3 scripts/export_landing_camp_collision.py
           python3 scripts/build_meridian_camp_graphics.py
           python3 scripts/stage_meridian_shady_forest_tileset.py
           python3 scripts/generate_landing_camp_metatile_prototype.py
