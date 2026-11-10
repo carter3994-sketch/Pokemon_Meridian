@@ -30,6 +30,7 @@ jobs:
           python3 -c 'import json, subprocess; paths=["data/meridian_plans/landing_camp_arrival.json", "data/meridian_plans/landing_camp_collision_draft.json"]; [(lambda p: (_ for _ in ()).throw(AssertionError(p)) if json.loads(subprocess.check_output(["git", "show", "HEAD:" + p])) != json.load(open(p)) else None)(p) for p in paths]'
       - name: Generate experimental Landing Camp metatile blockdata
         run: |
+          python3 scripts/stage_meridian_shady_forest_tileset.py
           python3 scripts/generate_landing_camp_metatile_prototype.py
           python3 scripts/stage_landing_camp_map_templates.py
       - name: Upload map prototype (not playable)
