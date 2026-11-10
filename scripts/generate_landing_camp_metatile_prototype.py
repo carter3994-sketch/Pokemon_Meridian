@@ -55,6 +55,24 @@ for y in range(height):
         assert bool(word & 0x0C00) == (collision["rows"][y][x] == "1")
         assert (word & 0xF000) == 0x3000
 
+# Check actual encoded map words, not merely the source collision JSON.
+from collections import deque
+arrival_x, arrival_y = plan["landmarks"]["arrival"]
+def passable(x, y):
+    return 0 <= x < width and 0 <= y < height and not (tiles[y * width + x] & 0x0C00)
+if not passable(arrival_x, arrival_y):
+    raise SystemExit("Encoded arrival point is blocked")
+seen = {(arrival_x, arrival_y)}
+queue = deque(seen)
+while queue:
+    x, y = queue.popleft()
+    for nx, ny in ((x+1,y),(x-1,y),(x,y+1),(x,y-1)):
+        if passable(nx, ny) and (nx, ny) not in seen:
+            seen.add((nx, ny))
+            queue.append((nx, ny))
+unreachable = {name: coords for name, coords in plan["landmarks"].items() if tuple(coords) not in seen}
+if unreachable:
+    raise SystemExit(f"Encoded map has unreachable landmarks: {unreachable}")
 out = root / "build/meridian_prototypes"
 out.mkdir(parents=True, exist_ok=True)
 blockdata = out / "landing_camp_arrival_placeholder_map.bin"
@@ -66,6 +84,8 @@ manifest = {
     "bytes": len(tiles) * 2,
     "source_layout": "LAYOUT_LITTLEROOT_TOWN",
     "temporary_metatile_word": f"0x{base:04X}",
+    "reachable_walkable_cells": len(seen),
+    "landmarks_reachable": len(plan["landmarks"]),
     "blocked_cells": sum(c == "1" for row in collision["rows"] for c in row),
     "zone_metatile_words": {k: f"0x{v:04X}" for k, v in zone_words.items()},
     "warning": "No mapped terrain variety, validated collision, event scripts, warps, map registration, or in-game testing.",
