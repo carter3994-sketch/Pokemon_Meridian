@@ -10,6 +10,8 @@ on:
       - 'scripts/audit_landing_camp_metatiles.py'
       - 'scripts/render_landing_camp_metatile_atlas.py'
       - 'scripts/build_meridian_camp_graphics.py'
+      - 'scripts/validate_meridian_art_sources.py'
+      - 'data/meridian_plans/landing_camp_asset_inventory.json'
       - '.github/workflows/landing-camp-integration.yml'
 concurrency:
   group: landing-camp-integration-${{ github.ref }}
@@ -19,6 +21,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Enforce external-art provenance gate
+        run: |
+          python3 scripts/validate_meridian_art_sources.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("data/meridian_plans/landing_camp_asset_inventory.json")
+          data = json.loads(p.read_text())
+          assert all(not c["import_allowed"] for c in data["candidates"]), "Unreviewed art unexpectedly marked importable"
+          print("Candidate sheets remain reference-only; no external art approved for import")
+          PY
       - name: Generate and register disposable debug map
         run: |
           python3 -m py_compile scripts/register_landing_camp_prototype.py
