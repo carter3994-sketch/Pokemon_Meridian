@@ -42,6 +42,13 @@ map_dir = maps / area["name"]
 map_dir.mkdir(parents=True, exist_ok=False)
 (map_dir / "map.json").write_text(json.dumps(area, indent=2) + "\n")
 (map_dir / "scripts.inc").write_text("MeridianLandingCampPrototype_MapScripts::\n    .byte 0\n")
+# The engine's event assembly includes are explicit, not inferred from map_groups.
+event_scripts_path = root / "data/event_scripts.s"
+event_scripts = event_scripts_path.read_text()
+include_line = '    .include "data/maps/MeridianLandingCampPrototype/scripts.inc"'
+if include_line in event_scripts:
+    raise SystemExit("Prototype event scripts already included")
+event_scripts_path.write_text(event_scripts + "\\n" + include_line + "\\n")
 groups["gMapGroup_TownsAndRoutes"].append(area["name"])
 group_path.write_text(json.dumps(groups, indent=2) + "\n")
 # Redirect only the disposable debug ROM's non-FRLG new-game spawn.
