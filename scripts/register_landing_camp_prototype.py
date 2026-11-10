@@ -49,6 +49,13 @@ for x, y, gfx, script in (
     mask = json.loads((root / "data/meridian_plans/landing_camp_collision_draft.json").read_text())
     if mask["rows"][y][x] != "0":
         raise SystemExit(f"Camp NPC location blocked: {x}, {y}")
+    if not any(
+        0 <= x + dx < mask["width"]
+        and 0 <= y + dy < mask["height"]
+        and mask["rows"][y + dy][x + dx] == "0"
+        for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0))
+    ):
+        raise SystemExit(f"Camp NPC has no walkable interaction tile: {x}, {y}")
     area["object_events"].append({
         "graphics_id": gfx, "x": x, "y": y, "elevation": 3,
         "movement_type": "MOVEMENT_TYPE_FACE_DOWN",
