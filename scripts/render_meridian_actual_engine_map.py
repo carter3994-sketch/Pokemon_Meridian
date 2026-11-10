@@ -16,7 +16,12 @@ stage=ROOT/"build/meridian_shady_forest_staging"
 primary=Image.open(ROOT/"data/tilesets/primary/general/tiles.png").convert("P")
 registered=ROOT/"data/tilesets/secondary/meridian_shady_forest"
 secondary_image=Image.open(registered/"tiles.png").convert("P") if (registered/"tiles.png").exists() else None
-secondary=(stage/"tiles.4bpp").read_bytes()
+# Prefer the exported hardware bytes, so PNG display cannot conceal a
+# packing/order error. Staged external art is only a legacy fallback.
+packed_path=registered/"tiles.4bpp"
+secondary=(packed_path if packed_path.exists() else stage/"tiles.4bpp").read_bytes()
+if packed_path.exists():
+ secondary_image=None
 metas=[
  (ROOT/"data/tilesets/primary/general/metatiles.bin").read_bytes(),
  ((registered/"metatiles.bin") if (registered/"metatiles.bin").exists() else (stage/"metatiles.bin")).read_bytes()
@@ -34,7 +39,7 @@ for i in range(6):
  pals[i]=pal_file(ROOT/f"data/tilesets/primary/general/palettes/{i:02d}.pal")
 for i in range(6,16):
  p=(registered/f"palettes/{i:02d}.pal") if (registered/f"palettes/{i:02d}.pal").exists() else (stage/f"palettes/{i:02d}.pal")
- pals[i]=pal_file(p if p.exists() else stage/"palettes/06.pal")
+ pals[i]=pal_file(p if p.exists() else (registered/"palettes/06.pal" if (registered/"palettes/06.pal").exists() else stage/"palettes/06.pal"))
 def pixel(tile,px,py):
  if tile<512:
   width=primary.width//8

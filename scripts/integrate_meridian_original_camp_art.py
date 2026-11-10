@@ -34,8 +34,11 @@ assert all(1<=g<=len(names) for g in gids)
 assert all(v in (0,1) for v in collision)
 assert 0<len(names)<=(atlas.width//16)*(atlas.height//16), "Atlas may have padding in its last row"
 # Build 512 unique 8x8 tiles maximum, padding with transparent tile 0.
-tile_cache={}
-tiles=[]
+# Upper-layer references must use our own transparent tile. Primary tile 0
+# belongs to General and is not guaranteed to be blank.
+blank=(0,)*64
+tile_cache={blank:0}
+tiles=[blank]
 metas=[]
 for mid in range(len(names)):
     mx=(mid%(atlas.width//16))*16
@@ -48,7 +51,7 @@ for mid in range(len(names)):
             tile_cache[pixels]=len(tiles)
             tiles.append(pixels)
         refs.append((6<<12)|(512+tile_cache[pixels]))
-    metas.extend(refs+[0,0,0,0])
+    metas.extend(refs+[(6<<12)|512]*4)
 assert len(tiles)<=512, f"Original art requires {len(tiles)} secondary 8x8 tiles; maximum 512"
 # Palette index 0 is transparent in the engine; the artwork uses it for cave openings.
 # The engine renderer leaves transparent pixels black, matching index 0 in the
@@ -61,7 +64,26 @@ for n,pixels in enumerate(tiles):
         for x in range(8):
             sheet.putpixel((tx+x,ty+y),pixels[y*8+x])
 sheet.save(DEST/"tiles.png")
-metas.extend([0]*((512-len(names))*8))
+# Export the actual packed GBA tile bank, not just a source-art PNG.
+packed=bytearray()
+for index in range(512):
+    pixels=tiles[index] if index<len(tiles) else blank
+    packed.extend(pixels[i] | (pixels[i+1]<<4) for i in range(0,64,2))
+(DEST/"tiles.4bpp").write_bytes(packed)
+assert len(packed)==16384 and packed[:32]==bytes(32)
+# Check each reference against the packed bytes used by the hardware.
+for mid in range(len(names)):
+    for slot in range(4):
+        ref=metas[mid*8+slot]
+        index=(ref&1023)-512
+        decoded=tuple((packed[index*32+i//2] >> (4*(i%2)))&15 for i in range(64))
+        sx=(mid%(atlas.width//16))*16+(slot%2)*8
+        sy=(mid//(atlas.width//16))*16+(slot//2)*8
+        expected=tuple(atlas.getpixel((sx+x,sy+y)) for y in range(8) for x in range(8))
+        assert decoded==expected, ("4bpp round trip failed",mid,slot)
+    assert metas[mid*8+4:mid*8+8]==[(6<<12)|512]*4
+# Unused metatiles are transparent too; do not refer into primary graphics.
+metas.extend([(6<<12)|512]*((512-len(names))*8))
 (DEST/"metatiles.bin").write_bytes(struct.pack("<4096H",*metas))
 (DEST/"metatile_attributes.bin").write_bytes(bytes(1024))
 colors=json.loads((ART/"metatile_manifest.json").read_text())["palette"]
@@ -69,7 +91,8 @@ colors=json.loads((ART/"metatile_manifest.json").read_text())["palette"]
 words=[(512+gid-1)|(0x0C00 if blocked else 0)|0x3000 for gid,blocked in zip(gids,collision)]
 MAP.write_bytes(struct.pack("<1920H",*words))
 report={"status":"original_art_integrated_into_disposable_engine_checkout","map_size":[w,h],
- "authored_metatiles":len(names),"unique_secondary_8x8_tiles":len(tiles),
+ "authored_metatiles":len(names),"packed_4bpp_bytes":len(packed),
+ "transparent_secondary_tile":512,"packed_tile_roundtrip":"passed","unique_secondary_8x8_tiles":len(tiles),
  "map_unique_metatile_ids":len(set(gids)),"collision_blocked":sum(collision),
  "engine_tileset":"gTileset_MeridianShadyForest",
  "source":"build/meridian_camp_art/camp_48x40_editable.tmx",
