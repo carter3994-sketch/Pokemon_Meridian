@@ -52,13 +52,33 @@ tile("cave", 12, lambda d: (d.ellipse((1,0,14,15),fill=13),d.ellipse((4,4,12,15)
 tile("ship_hull", 10, lambda d: (d.polygon([(0,4),(15,4),(12,14),(3,14)],fill=6),d.line((2,5,13,5),fill=8)))
 tile("ship_deck", 6, lambda d: (d.line((0,0,15,0),fill=8),d.line((0,15,15,15),fill=12)))
 tile("ship_sail", 10, lambda d: (d.polygon([(8,0),(8,15),(1,13)],fill=15),d.line((8,0,8,15),fill=6)))
+# New coherent 2x2 tree canopies, shaded trunk bases and coastal rock edges.
+for bloom in (False, True):
+    prefix = "blossom" if bloom else "forest"
+    crown = Image.new("P", (32, 32), 0)
+    crown.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
+    d = ImageDraw.Draw(crown)
+    d.ellipse((1,3,30,29), fill=14 if bloom else 1)
+    d.ellipse((4,1,26,24), fill=15 if bloom else 2)
+    d.ellipse((7,7,23,26), fill=14 if bloom else 3)
+    for i,(x,y) in enumerate(((8,9),(21,6),(14,17),(25,20),(5,22))):
+        d.rectangle((x,y,x+2,y+2), fill=(15 if i%2 else 14) if bloom else (2 if i%2 else 1))
+    for qy in range(2):
+        for qx in range(2):
+            ART[f"{prefix}_crown_{qx}_{qy}"] = crown.crop((qx*16,qy*16,qx*16+16,qy*16+16))
+tile("cliff_lip", 3, lambda d: (d.polygon([(0,8),(5,6),(10,9),(15,7),(15,15),(0,15)],fill=12),d.line((0,8,5,6,10,9,15,7),fill=5)))
+tile("cliff_shadow", 12, lambda d: (d.rectangle((0,0,4,15),fill=13),d.line((8,1,5,14),fill=6)))
+tile("waterfall", 10, lambda d: ([d.line((x,0,x-1,15),fill=11) for x in (3,8,13)],d.line((0,15,15,15),fill=15)))
+tile("ship_bow", 10, lambda d: (d.polygon([(0,5),(15,1),(12,13),(3,15)],fill=6),d.line((0,5,15,1),fill=8)))
+tile("ship_stern", 10, lambda d: (d.polygon([(0,1),(15,5),(12,15),(3,13)],fill=6),d.line((0,1,15,5),fill=8)))
+tile("tent_roof", 4, lambda d: (d.polygon([(0,15),(8,0),(15,15)],fill=13),d.line((8,1,8,15),fill=8)))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name], ((i%8)*16,(i//8)*16))
 atlas.save(OUT / "camp_original_metatiles_indexed.png")
-(OUT / "metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\\n")
+(OUT / "metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
 # Render 48x40 preview using coordinate-aware buildings and landscape features.
 grid = [["grass" for x in range(W)] for y in range(H)]
 legend = {".":"grass","=":"path","D":"dock","+":"path","A":"path","F":"fire",
@@ -100,6 +120,24 @@ for y,row in enumerate(PLAN["rows"]):
             grid[y][x]="tree_bloom" if (x+y)%7==0 else "tree_top"
         elif ch=="~" and any(0<=xx<W and PLAN["rows"][y][xx] not in "~" for xx in (x-1,x+1)):
             grid[y][x]="shore"
+# Compose 2x2 tree crowns from four matching quadrants, not isolated dots.
+# Only replace forest cells; never overwrite roads, door approaches or warps.
+for y in range(1,H-2,3):
+    for x in range(1,W-2,3):
+        if all(PLAN["rows"][yy][xx]=="T" for yy in (y,y+1) for xx in (x,x+1)):
+            prefix = "blossom" if (x*3+y)%11==0 else "forest"
+            for qy in range(2):
+                for qx in range(2):
+                    grid[y+qy][x+qx] = f"{prefix}_crown_{qx}_{qy}"
+# Give cliff boundaries a distinct lip instead of a solid cliff texture.
+for y in range(H):
+    for x in range(W):
+        if PLAN["rows"][y][x]=="^" and y>0 and PLAN["rows"][y-1][x]!="^":
+            grid[y][x]="cliff_lip"
+# Tent-market indicators only on free land adjacent to the central plaza.
+for x,y in ((10,25),(22,26),(27,24)):
+    if PLAN["rows"][y][x] in ".=":
+        grid[y][x]="tent_roof"
 # Representative ship silhouette on water west of the camp arrival.
 for x in range(2,9):
     for y in range(17,20):
