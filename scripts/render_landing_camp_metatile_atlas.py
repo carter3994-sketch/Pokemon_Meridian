@@ -86,6 +86,6 @@ for label, rel in SETS:
     sheet.save(dest)
     if unresolved:
         report = OUT / f"metatile_unresolved_{label}.txt"
-        report.write_text("Unresolved tile IDs (preview intentionally leaves these blank):\\n" + "\\n".join(map(str, sorted(unresolved))) + "\\n")
+        report.write_text("Unresolved tile IDs (preview intentionally leaves these blank):\n" + "\n".join(map(str, sorted(unresolved))) + "\n")
         print(f"WARNING: {len(unresolved)} unresolved tile IDs; see {report}")
-    print(f"Rendered {dest} ({count} metatiles)")
+    print(f"Rendered {dest} ({count} metatiles); unresolved={len(unresolved)}")
