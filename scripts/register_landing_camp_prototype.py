@@ -40,8 +40,44 @@ registry["layouts"].append(layout)
 (layouts_path).write_text(json.dumps(registry, indent=2) + "\n")
 map_dir = maps / area["name"]
 map_dir.mkdir(parents=True, exist_ok=False)
+# Populate the test camp with two temporary, interactable expedition staff.
+# These use existing Emerald sprites until approved Meridian artwork is ready.
+for x, y, gfx, script in (
+    (14, 23, "OBJ_EVENT_GFX_SCIENTIST_1", "MeridianLandingCamp_EventScript_Researcher"),
+    (20, 21, "OBJ_EVENT_GFX_FAT_MAN", "MeridianLandingCamp_EventScript_Quartermaster"),
+):
+    mask = json.loads((root / "data/meridian_plans/landing_camp_collision_draft.json").read_text())
+    if mask["rows"][y][x] != "0":
+        raise SystemExit(f"Camp NPC location blocked: {x}, {y}")
+    area["object_events"].append({
+        "graphics_id": gfx, "x": x, "y": y, "elevation": 3,
+        "movement_type": "MOVEMENT_TYPE_FACE_DOWN",
+        "movement_range_x": 0, "movement_range_y": 0,
+        "trainer_type": "TRAINER_TYPE_NONE",
+        "trainer_sight_or_berry_tree_id": "0",
+        "script": script, "flag": "0",
+    })
 (map_dir / "map.json").write_text(json.dumps(area, indent=2) + "\n")
-(map_dir / "scripts.inc").write_text("MeridianLandingCampPrototype_MapScripts::\n    .byte 0\n")
+(map_dir / "scripts.inc").write_text(
+    "MeridianLandingCampPrototype_MapScripts::\\n"
+    "    .byte 0\\n\\n"
+    "MeridianLandingCamp_EventScript_Researcher::\\n"
+    "    lock\\n    faceplayer\\n"
+    "    msgbox MeridianLandingCamp_Text_Researcher, MSGBOX_DEFAULT\\n"
+    "    release\\n    end\\n\\n"
+    "MeridianLandingCamp_EventScript_Quartermaster::\\n"
+    "    lock\\n    faceplayer\\n"
+    "    msgbox MeridianLandingCamp_Text_Quartermaster, MSGBOX_DEFAULT\\n"
+    "    release\\n    end\\n\\n"
+    "MeridianLandingCamp_Text_Researcher:\\n"
+    "    .string \\"Welcome to the expedition.\\n"
+    "Our team calls this land MERIDIAN.\\n"
+    "The people here call it AEVOR.$\\"\\n\\n"
+    "MeridianLandingCamp_Text_Quartermaster:\\n"
+    "    .string \\"Supplies are limited.\\n"
+    "Stay near camp until the\\n"
+    "survey teams return.$\\"\\n"
+)
 # The engine's event assembly includes are explicit, not inferred from map_groups.
 event_scripts_path = root / "data/event_scripts.s"
 event_scripts = event_scripts_path.read_text()
