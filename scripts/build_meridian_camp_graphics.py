@@ -409,6 +409,43 @@ for qy in range(5):
         if set(ART[name].getdata())!={15}:
             grid[6+qy][25+qx]=name
 
+# Replace the obsolete sailboat with the reference-based expedition vessel.
+ship_image=Image.open(ROOT/"graphics/meridian/landing_camp/expedition_ship.png")
+assert ship_image.mode=="P" and ship_image.size==(112,48)
+ship_palette=[tuple(ship_image.getpalette()[i:i+3]) for i in range(0,48,3)]
+ship_image.putdata([15 if value==0 else value for value in ship_image.getdata()])
+for qy in range(4):
+    for qx in range(7):
+        xx,yy=2+qx,14+qy
+        phase=(xx+2*yy)%5
+        grid[yy][xx]="water" if phase==0 else f"water_material_{phase}"
+for qy in range(3):
+    for qx in range(7):
+        name=f"expedition_ship_{qx}_{qy}"
+        ART[name]=ship_image.crop((qx*16,qy*16,qx*16+16,qy*16+16))
+        if set(ART[name].getdata())!={15}: grid[14+qy][2+qx]=name
+
+# Dense forest: complete 3x4 conifers on contiguous forest footprints.
+forest_image=Image.open(ROOT/"graphics/meridian/landing_camp/forest_conifer.png")
+assert forest_image.mode=="P" and forest_image.size==(48,64)
+forest_palette=[tuple(forest_image.getpalette()[i:i+3]) for i in range(0,48,3)]
+forest_image.putdata([15 if value==0 else value for value in forest_image.getdata()])
+for qy in range(4):
+    for qx in range(3):
+        ART[f"conifer_{qx}_{qy}"]=forest_image.crop((qx*16,qy*16,qx*16+16,qy*16+16))
+for yy,row in enumerate(PLAN["rows"]):
+    for xx,ch in enumerate(row):
+        if ch=="T":
+            phase=(xx+2*yy)%5
+            grid[yy][xx]="grass_dark" if phase==0 else f"grass_dark_material_{phase}"
+for yy in range(0,H-3,4):
+    for xx in range(0,W-2,3):
+        if all(PLAN["rows"][y][x]=="T" for y in range(yy,yy+4) for x in range(xx,xx+3)):
+            for qy in range(4):
+                for qx in range(3):
+                    name=f"conifer_{qx}_{qy}"
+                    if set(ART[name].getdata())!={15}: grid[yy+qy][xx+qx]=name
+
 # Regenerate indexed atlas and manifest after adding the material variants.
 names=list(ART)
 atlas=Image.new("P",(16*8,16*((len(names)+7)//8)),0)
@@ -416,7 +453,7 @@ atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name],((i%8)*16,(i//8)*16))
 atlas.save(OUT/"camp_original_metatiles_indexed.png")
-(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette},"tile_palettes":{n:7 if n.startswith("headquarters_") else 6 for n in names},"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette,"8":ship_palette,"9":forest_palette},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else 6)) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):

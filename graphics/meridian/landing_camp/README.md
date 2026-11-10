@@ -5,3 +5,9 @@
 The source uses transparent index 0, fourteen quantized building colors, and one reserved grass color. The map author composites transparency over grass. The converter assigns palette bank 7 and verifies every referenced 8 × 8 tile against its packed 4bpp encoding. The HQ door stays at (28, 10); roof/facade cells block movement and its entrance has `MB_NON_ANIMATED_DOOR`.
 
 This is one implemented building asset. The surrounding legacy camp art and layout still fail the approved visual direction. This asset has not been verified in emulator gameplay; neither automated pixel equality nor a successful compilation establishes visual approval. The existing interior graphics remain temporary. Do not label the full camp production-ready.
+
+`expedition_ship.png` is a 112 × 48 indexed adaptation of the approved modern metal expedition vessel, replacing the sailboat in the generated engine map. It uses palette bank 8, retains the gray hull, red waterline, blue windows, cargo and expedition banner, and remains on blocked water cells. Boarding events and final southwest harbor placement are not implemented.
+
+`forest_conifer.png` is a 48 × 64 indexed conifer adaptation from the approved forest. It uses palette bank 9 and is composed across 3 × 4 metatiles in contiguous forest zones. Forest collision remains solid. The final dense forest composition, flowering trees and shoreline remain unfinished.
+
+The original-art CI workflow assembles these assets into the real secondary tile bank and map blockdata, validates reachable doors and paired return warps, compiles a ROM, checks its header and runs mGBA until the first VBlank BIOS call. The startup smoke check does not test walking, interactions, interior transitions or saving.
