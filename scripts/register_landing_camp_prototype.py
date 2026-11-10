@@ -58,26 +58,29 @@ for x, y, gfx, script in (
         "script": script, "flag": "0",
     })
 (map_dir / "map.json").write_text(json.dumps(area, indent=2) + "\n")
-(map_dir / "scripts.inc").write_text(
-    "MeridianLandingCampPrototype_MapScripts::\\n"
-    "    .byte 0\\n\\n"
-    "MeridianLandingCamp_EventScript_Researcher::\\n"
-    "    lock\\n    faceplayer\\n"
-    "    msgbox MeridianLandingCamp_Text_Researcher, MSGBOX_DEFAULT\\n"
-    "    release\\n    end\\n\\n"
-    "MeridianLandingCamp_EventScript_Quartermaster::\\n"
-    "    lock\\n    faceplayer\\n"
-    "    msgbox MeridianLandingCamp_Text_Quartermaster, MSGBOX_DEFAULT\\n"
-    "    release\\n    end\\n\\n"
-    "MeridianLandingCamp_Text_Researcher:\\n"
-    "    .string \\"Welcome to the expedition.\\n"
-    "Our team calls this land MERIDIAN.\\n"
-    "The people here call it AEVOR.$\\"\\n\\n"
-    "MeridianLandingCamp_Text_Quartermaster:\\n"
-    "    .string \\"Supplies are limited.\\n"
-    "Stay near camp until the\\n"
-    "survey teams return.$\\"\\n"
-)
+(map_dir / "scripts.inc").write_text("""MeridianLandingCampPrototype_MapScripts::
+    .byte 0
+
+MeridianLandingCamp_EventScript_Researcher::
+    lock
+    faceplayer
+    msgbox MeridianLandingCamp_Text_Researcher, MSGBOX_DEFAULT
+    release
+    end
+
+MeridianLandingCamp_EventScript_Quartermaster::
+    lock
+    faceplayer
+    msgbox MeridianLandingCamp_Text_Quartermaster, MSGBOX_DEFAULT
+    release
+    end
+
+MeridianLandingCamp_Text_Researcher:
+    .string "Welcome to the expedition.\nOur team calls this land MERIDIAN.\nThe people here call it AEVOR.$"
+
+MeridianLandingCamp_Text_Quartermaster:
+    .string "Supplies are limited.\nStay near camp until the\nsurvey teams return.$"
+""")
 # The engine's event assembly includes are explicit, not inferred from map_groups.
 event_scripts_path = root / "data/event_scripts.s"
 event_scripts = event_scripts_path.read_text()
