@@ -139,6 +139,13 @@ tile("shore_nw", 10, lambda d: (d.polygon([(0,0),(15,0),(15,5),(9,7),(7,15),(0,1
 tile("shore_ne", 10, lambda d: (d.polygon([(0,0),(15,0),(15,15),(8,15),(6,8),(0,5)],fill=5),d.arc((-2,2,11,16),270,360,fill=11)))
 tile("shore_sw", 10, lambda d: (d.polygon([(0,0),(7,0),(9,7),(15,9),(15,15),(0,15)],fill=5),d.arc((4,-2,17,11),90,180,fill=11)))
 tile("shore_se", 10, lambda d: (d.polygon([(8,0),(15,0),(15,15),(0,15),(0,9),(6,7)],fill=5),d.arc((-2,-2,11,11),0,90,fill=11)))
+# Cliff strata and waterfall segments authored as contiguous vertical textures.
+tile("cliff_crack", 12, lambda d: (d.line((4,0,7,5,5,9,10,15),fill=6,width=2),d.line((13,0,11,4,14,8),fill=13)))
+tile("cliff_ledge", 12, lambda d: (d.polygon([(0,0),(15,0),(15,4),(10,6),(4,5),(0,7)],fill=4),d.line((0,7,4,5,10,6,15,4),fill=5)))
+tile("cliff_moss", 12, lambda d: (d.polygon([(0,0),(7,0),(10,3),(6,6),(0,4)],fill=2),d.line((3,7,1,14),fill=6)))
+tile("falls_top", 10, lambda d: (d.rectangle((2,0,13,15),fill=11),d.line((4,2,4,15),fill=15),d.line((10,0,9,15),fill=15)))
+tile("falls_middle", 10, lambda d: (d.rectangle((2,0,13,15),fill=11),d.line((5,0,4,15),fill=15),d.line((10,0,11,15),fill=15)))
+tile("falls_bottom", 10, lambda d: (d.rectangle((2,0,13,10),fill=11),d.line((5,0,4,10),fill=15),d.ellipse((0,8,15,15),fill=15),d.line((0,14,15,14),fill=11)))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
@@ -244,6 +251,27 @@ for y in range(H):
     for x in range(W):
         if PLAN["rows"][y][x]=="^" and y>0 and PLAN["rows"][y-1][x]!="^":
             grid[y][x]="cliff_lip"
+# Vary cliff faces by location, preserving continuous rock boundaries.
+for y,row in enumerate(PLAN["rows"]):
+    for x,ch in enumerate(row):
+        if ch!="^": continue
+        above = y>0 and PLAN["rows"][y-1][x]=="^"
+        below = y+1<H and PLAN["rows"][y+1][x]=="^"
+        if not above: grid[y][x]="cliff_ledge"
+        elif not below: grid[y][x]="cliff_moss"
+        elif (x*7+y*3)%11==0: grid[y][x]="cliff_crack"
+        elif (x*5+y)%13==0: grid[y][x]="cliff_shadow"
+# Waterfall art is reserved for actual water cells adjacent to rock.
+# No invented waterfall is stamped over walkable terrain.
+for x in range(1,W-1):
+    spans=[]
+    for y in range(1,H-1):
+        if PLAN["rows"][y][x]=="~" and (PLAN["rows"][y][x-1]=="^" or PLAN["rows"][y][x+1]=="^"):
+            spans.append(y)
+    for i,y in enumerate(spans):
+        if i and y!=spans[i-1]+1: continue
+        if len(spans)<3: continue
+        grid[y][x]="falls_top" if i==0 else ("falls_bottom" if i==len(spans)-1 else "falls_middle")
 # Tent-market indicators only on free land adjacent to the central plaza.
 for x,y in ((10,25),(22,26),(27,24)):
     if PLAN["rows"][y][x] in ".=":
