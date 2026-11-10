@@ -1,0 +1,27 @@
+name: Meridian External Tileset Visual Review
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - 'scripts/audit_meridian_candidate_tileset.py'
+      - 'scripts/build_meridian_candidate_contact_sheet.py'
+      - '.github/workflows/landing-camp-candidate-review.yml'
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pillow
+        run: python3 -m pip install Pillow
+      - name: Fetch source example art for visual evaluation only
+        run: |
+          mkdir -p build/meridian_candidate_review
+          python3 scripts/build_meridian_candidate_contact_sheet.py
+      - name: Upload candidate comparison images
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-external-tileset-visual-review
+          path: build/meridian_candidate_review/
+          if-no-files-found: error
+          retention-days: 14
