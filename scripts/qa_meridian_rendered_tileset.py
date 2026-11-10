@@ -22,7 +22,9 @@ assert len(raw) == w * h * 2, "Map binary size mismatch"
 ids = [v & 1023 for v in struct.unpack("<" + str(w * h) + "H", raw)]
 metas = (root / "data/tilesets/secondary/meridian_shady_forest/metatiles.bin").read_bytes()
 assert len(metas) == 512 * 16, "Secondary metatile bank must have exactly 512 entries"
-tiles = (root / "build/meridian_shady_forest_staging/tiles.4bpp").read_bytes()
+tile_path=root/"data/tilesets/secondary/meridian_shady_forest/tiles.4bpp"
+if not tile_path.exists(): tile_path=root/"build/meridian_shady_forest_staging/tiles.4bpp"
+tiles=tile_path.read_bytes()
 assert len(tiles) == 512 * 32, "Secondary graphics bank must have 512 8x8 tiles"
 # A repeated-looking metatile with a different ID still hashes identically.
 cells = [preview.crop((x*16,y*16,(x+1)*16,(y+1)*16)).tobytes()

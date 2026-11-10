@@ -15,7 +15,9 @@ path=root/"data/layouts/MeridianLandingCampPrototype/map.bin"
 words=struct.unpack("<"+str(w*h)+"H",path.read_bytes())
 ids=[v&1023 for v in words]
 counts=Counter(ids)
-primary=(root/"data/tilesets/primary/general/metatiles.bin").read_bytes()
+primary_path=root/"data/tilesets/primary/meridian_camp_environment/metatiles.bin"
+if not primary_path.exists(): primary_path=root/"data/tilesets/primary/general/metatiles.bin"
+primary=primary_path.read_bytes()
 secondary=(root/"data/tilesets/secondary/meridian_shady_forest/metatiles.bin").read_bytes()
 def signature(tile_id):
     source=primary if tile_id<512 else secondary

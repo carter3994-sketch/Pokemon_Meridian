@@ -15,8 +15,12 @@ plan = json.loads((ROOT / "data/meridian_plans/landing_camp_arrival.json").read_
 w, h = plan["width"], plan["height"]
 words = struct.unpack(f"<{w*h}H", (ROOT / "data/layouts/MeridianLandingCampPrototype/map.bin").read_bytes())
 bank = ROOT / "data/tilesets/secondary/meridian_shady_forest"
-attrs = struct.unpack("<512H", (bank / "metatile_attributes.bin").read_bytes())
-metas = struct.unpack("<4096H", (bank / "metatiles.bin").read_bytes())
+primary=ROOT/"data/tilesets/primary/meridian_camp_environment"
+attrs=[struct.unpack("<512H",(p/"metatile_attributes.bin").read_bytes()) for p in (primary,bank)]
+metas=[struct.unpack("<4096H",(p/"metatiles.bin").read_bytes()) for p in (primary,bank)]
+layouts=json.loads((ROOT/"data/layouts/layouts.json").read_text())
+layout=next(v for v in layouts["layouts"] if v["id"]=="LAYOUT_MERIDIAN_LANDING_CAMP_PROTOTYPE")
+assert layout["primary_tileset"]=="gTileset_MeridianCampEnvironment"
 # Emerald indexes secondary palettes at [NUM_PALS_IN_PRIMARY], so the
 # C array must include all sixteen slots, including the first six.
 graphics = (ROOT / "src/data/tilesets/graphics.h").read_text()
@@ -24,11 +28,13 @@ palette_array = graphics.split("gTilesetPalettes_MeridianShadyForest[][16]", 1)[
 assert palette_array.count("INCGFX_U16(") == 16, "Secondary palette table must contain 16 slots"
 raw = (bank / "tiles.4bpp").read_bytes()
 assert len(raw) == 16384 and raw[:32] == bytes(32)
+primary_raw=(primary/"tiles.4bpp").read_bytes()
+assert len(primary_raw)==16384 and primary_raw[:32]==bytes(32)
 for word in words:
-    mid = (word & 1023) - 512
-    assert 0 <= mid < 512
-    for ref in metas[mid*8:mid*8+8]:
-        assert 512 <= (ref & 1023) < 1024
+    mid = word & 511
+    bank_id=(word&1023)//512
+    for ref in metas[bank_id][mid*8:mid*8+8]:
+        assert bank_id*512 <= (ref & 1023) < (bank_id+1)*512
         assert (bank / f"palettes/{ref >> 12:02d}.pal").exists()
 
 arrival = tuple(plan["landmarks"]["arrival"])
@@ -50,7 +56,7 @@ checked = []
 for landmark in ("medical_door", "research_door", "hq_door", "supply_door", "quarters_door"):
     x, y = plan["landmarks"][landmark]
     assert (x, y) in reachable, f"Unreachable {landmark}"
-    assert attrs[(words[y*w+x] & 1023)-512] & 255 == door_behavior, landmark
+    assert attrs[(words[y*w+x]&1023)//512][words[y*w+x]&511] & 255 == door_behavior, landmark
     matches = [(i, warp) for i, warp in enumerate(area["warp_events"]) if (warp["x"],warp["y"]) == (x,y)]
     assert len(matches) == 1, f"Missing or ambiguous warp: {landmark}"
     warp_id, warp = matches[0]

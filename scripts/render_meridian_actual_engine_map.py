@@ -13,7 +13,9 @@ ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/"build/meridian_candidate_review"
 OUT.mkdir(parents=True,exist_ok=True)
 stage=ROOT/"build/meridian_shady_forest_staging"
-primary=Image.open(ROOT/"data/tilesets/primary/general/tiles.png").convert("P")
+camp_primary=ROOT/"data/tilesets/primary/meridian_camp_environment"
+primary_path=camp_primary if camp_primary.exists() else ROOT/"data/tilesets/primary/general"
+primary=Image.open(primary_path/"tiles.png").convert("P")
 registered=ROOT/"data/tilesets/secondary/meridian_shady_forest"
 secondary_image=Image.open(registered/"tiles.png").convert("P") if (registered/"tiles.png").exists() else None
 # Prefer the exported hardware bytes, so PNG display cannot conceal a
@@ -23,7 +25,7 @@ secondary=(packed_path if packed_path.exists() else stage/"tiles.4bpp").read_byt
 if packed_path.exists():
  secondary_image=None
 metas=[
- (ROOT/"data/tilesets/primary/general/metatiles.bin").read_bytes(),
+ (primary_path/"metatiles.bin").read_bytes(),
  ((registered/"metatiles.bin") if (registered/"metatiles.bin").exists() else (stage/"metatiles.bin")).read_bytes()
 ]
 metas=[struct.unpack("<"+"H"*(len(b)//2),b) for b in metas]

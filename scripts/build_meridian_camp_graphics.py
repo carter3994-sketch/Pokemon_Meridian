@@ -446,6 +446,34 @@ for yy in range(0,H-3,4):
                     name=f"conifer_{qx}_{qy}"
                     if set(ART[name].getdata())!={15}: grid[yy+qy][xx+qx]=name
 
+# Reference-based expedition modules. Existing five door coordinates remain
+# stable; source-zone slabs are replaced by complete building silhouettes.
+module_palettes={}
+module_slots={}
+module_specs=[
+    ("medical_center",10,(7,9),"M"),
+    ("research_lab",11,(17,8),"L"),
+    ("supply_depot",12,(39,20),"S"),
+    ("living_quarters",13,(40,26),"Q"),
+    ("provision_store",14,(25,22),None),
+]
+for yy,row in enumerate(PLAN["rows"]):
+    for xx,ch in enumerate(row):
+        if ch in "MLSQ":
+            phase=(xx+2*yy)%5
+            grid[yy][xx]="grass" if phase==0 else f"grass_material_{phase}"
+for asset,slot,(ox,oy),zone in module_specs:
+    sprite=Image.open(ROOT/f"graphics/meridian/landing_camp/{asset}.png")
+    assert sprite.mode=="P" and sprite.width%16==0 and sprite.height%16==0
+    module_palettes[str(slot)]=[tuple(sprite.getpalette()[i:i+3]) for i in range(0,48,3)]
+    sprite.putdata([15 if value==0 else value for value in sprite.getdata()])
+    for qy in range(sprite.height//16):
+        for qx in range(sprite.width//16):
+            name=f"{asset}_{qx}_{qy}"
+            ART[name]=sprite.crop((qx*16,qy*16,qx*16+16,qy*16+16))
+            module_slots[name]=slot
+            if set(ART[name].getdata())!={15}: grid[oy+qy][ox+qx]=name
+
 # Regenerate indexed atlas and manifest after adding the material variants.
 names=list(ART)
 atlas=Image.new("P",(16*8,16*((len(names)+7)//8)),0)
@@ -453,7 +481,7 @@ atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name],((i%8)*16,(i//8)*16))
 atlas.save(OUT/"camp_original_metatiles_indexed.png")
-(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette,"8":ship_palette,"9":forest_palette},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else 6)) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
@@ -472,6 +500,15 @@ for yy,row in enumerate(PLAN["rows"]):
 for yy in range(6,11):
     for xx in range(25,31): collision["rows"][yy][xx]="1" if grid[yy][xx].startswith("headquarters_") else "0"
 collision["rows"][10][28]="0"
+for yy,row in enumerate(PLAN["rows"]):
+    for xx,ch in enumerate(row):
+        if ch in "MLSQ": collision["rows"][yy][xx]="0"
+for yy in range(H):
+    for xx in range(W):
+        if grid[yy][xx] in module_slots: collision["rows"][yy][xx]="1"
+for key in ("medical_door","research_door","supply_door","quarters_door"):
+    dx,dy=PLAN["landmarks"][key]
+    collision["rows"][dy][dx]="0"
 assert PLAN["landmarks"]["hq_door"]==[28,10]
 tmx = ET.Element("map", {
     "version":"1.10","tiledversion":"1.11.2","orientation":"orthogonal",

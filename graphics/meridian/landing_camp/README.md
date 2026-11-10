@@ -11,3 +11,7 @@ This is one implemented building asset. The surrounding legacy camp art and layo
 `forest_conifer.png` is a 48 × 64 indexed conifer adaptation from the approved forest. It uses palette bank 9 and is composed across 3 × 4 metatiles in contiguous forest zones. Forest collision remains solid. The final dense forest composition, flowering trees and shoreline remain unfinished.
 
 The original-art CI workflow assembles these assets into the real secondary tile bank and map blockdata, validates reachable doors and paired return warps, compiles a ROM, checks its header and runs mGBA until the first VBlank BIOS call. The startup smoke check does not test walking, interactions, interior transitions or saving.
+
+Medical (48 × 48), research (48 × 64), supply (64 × 48), living quarters (48 × 32) and provision shop (48 × 48) indexed sprites replace the generic exterior slabs. Their palette banks are 10–14. The first four retain existing paired entrance locations; the provision storefront currently has no working interior entrance.
+
+The converter now generates a dedicated `gTileset_MeridianCampEnvironment` primary bank for environment art and a secondary bank for imported structures and foliage. General is preserved for other maps. With these building assets, the primary bank uses 155 tiles and the secondary uses 356 tiles (each has a limit of 512). Flip-aware tile deduplication is verified by decoding every reference back to its authored pixels. The final map composition and remaining terrain are still unfinished.
