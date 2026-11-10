@@ -1,0 +1,37 @@
+name: Meridian Landing Camp Map Integration Test
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - 'scripts/register_landing_camp_prototype.py'
+      - 'scripts/stage_landing_camp_map_templates.py'
+      - 'scripts/generate_landing_camp_metatile_prototype.py'
+      - '.github/workflows/landing-camp-integration.yml'
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate and register disposable debug map
+        run: |
+          python3 scripts/generate_landing_camp_metatile_prototype.py
+          python3 scripts/stage_landing_camp_map_templates.py
+          python3 scripts/register_landing_camp_prototype.py
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
+      - name: Compile prototype registration
+        env:
+          GAME_VERSION: EMERALD
+          GAME_LANGUAGE: ENGLISH
+          COMPARE: '0'
+        run: make -j2
+      - name: Upload experimental ROM
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-unreachable-debug-rom
+          path: pokeemerald.gba
+          if-no-files-found: error
+          retention-days: 7
