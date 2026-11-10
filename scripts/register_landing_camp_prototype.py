@@ -46,10 +46,16 @@ groups["gMapGroup_TownsAndRoutes"].append(area["name"])
 group_path.write_text(json.dumps(groups, indent=2) + "\n")
 # Redirect only the disposable debug ROM's non-FRLG new-game spawn.
 # This does not touch the checked-in game startup flow.
+spawn_x, spawn_y = plan_spawn = json.loads((root / "data/meridian_plans/landing_camp_arrival.json").read_text())["landmarks"]["arrival"]
+mask = json.loads((root / "data/meridian_plans/landing_camp_collision_draft.json").read_text())
+if mask["rows"][spawn_y][spawn_x] != "0":
+    raise SystemExit("Prototype arrival coordinate is blocked in collision plan")
+if not any(0 <= spawn_x + dx < mask["width"] and 0 <= spawn_y + dy < mask["height"] and mask["rows"][spawn_y + dy][spawn_x + dx] == "0" for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0))):
+    raise SystemExit("Prototype arrival has no open neighboring cell")
 new_game_path = root / "src/new_game.c"
 new_game = new_game_path.read_text()
 original = "SetWarpDestination(MAP_GROUP(MAP_INSIDE_OF_TRUCK), MAP_NUM(MAP_INSIDE_OF_TRUCK), WARP_ID_NONE, -1, -1);"
-replacement = "SetWarpDestination(MAP_GROUP(MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE), MAP_NUM(MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE), WARP_ID_NONE, 12, 23);"
+replacement = f"SetWarpDestination(MAP_GROUP(MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE), MAP_NUM(MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE), WARP_ID_NONE, {spawn_x}, {spawn_y});"
 if new_game.count(original) != 1:
     raise SystemExit("Could not safely locate unique default new-game warp")
 new_game_path.write_text(new_game.replace(original, replacement))
