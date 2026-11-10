@@ -76,10 +76,10 @@ MeridianLandingCamp_EventScript_Quartermaster::
     end
 
 MeridianLandingCamp_Text_Researcher:
-    .string "Welcome to the expedition.\nOur team calls this land MERIDIAN.\nThe people here call it AEVOR.$"
+    .string "Welcome to MERIDIAN. The natives call it AEVOR.$"
 
 MeridianLandingCamp_Text_Quartermaster:
-    .string "Supplies are limited.\nStay near camp until the\nsurvey teams return.$"
+    .string "Supplies are limited. Stay near camp.$"
 """)
 # The engine's event assembly includes are explicit, not inferred from map_groups.
 event_scripts_path = root / "data/event_scripts.s"
