@@ -1,0 +1,72 @@
+{
+  "commit": "57457bb40724d2948ec42e4a26ff35c968cbf638",
+  "emulator": "mGBA",
+  "entrances": [
+    {
+      "building": "hq",
+      "entered_map_num": 59,
+      "returned_to": [
+        28,
+        10
+      ],
+      "pass": true
+    },
+    {
+      "building": "research",
+      "entered_map_num": 58,
+      "returned_to": [
+        18,
+        11
+      ],
+      "pass": true
+    },
+    {
+      "building": "medical",
+      "entered_map_num": 57,
+      "returned_to": [
+        8,
+        11
+      ],
+      "pass": true
+    },
+    {
+      "building": "supply",
+      "entered_map_num": 60,
+      "returned_to": [
+        41,
+        22
+      ],
+      "pass": true
+    },
+    {
+      "building": "quarters",
+      "entered_map_num": 61,
+      "returned_to": [
+        41,
+        27
+      ],
+      "pass": true
+    }
+  ],
+  "scope": "Five exterior door transitions and paired returns, via walking inputs; interiors still temporary",
+  "vram_primary_bytes_matching": 16384,
+  "vram_secondary_bytes_matching": 16384,
+  "map_palettes_matching": 13,
+  "arrival": [
+    12,
+    23
+  ],
+  "pass": true,
+  "rom_sha256": "290ecd45c70ce5eae9ceec2dacf498f50029ff27f26c5d7b51c8a839169bdedb",
+  "emulator_source_commit": "662dada8b79070bde93829a44d583c517fc5ec2d",
+  "method": "Emulated direction-key walking to each door. Destination map IDs and returned player positions read from live emulated memory. No position or warp writes.",
+  "palette_and_vram_rechecked_after_all_returns": true,
+  "not_verified": [
+    "Final approved map composition",
+    "Final collision sweep",
+    "Permanent interior graphics",
+    "Provision-store/cave interiors",
+    "Waterfall animation",
+    "In-game saving/loading"
+  ]
+}
