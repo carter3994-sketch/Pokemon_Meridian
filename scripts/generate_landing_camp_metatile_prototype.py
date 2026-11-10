@@ -5,7 +5,6 @@ This is a buildable asset prototype, NOT a registered or playable map.
 Tiles are temporary existing Littleroot metatiles; visual fidelity and
 collision behavior must be reviewed before map registration.
 """
-from collections import Counter
 from pathlib import Path
 import json
 import struct
@@ -22,22 +21,28 @@ source = (root / "data/layouts/LittlerootTown/map.bin").read_bytes()
 if len(source) != 20 * 20 * 2:
     raise SystemExit(f"Unexpected Littleroot source blockdata size: {len(source)}")
 words = struct.unpack("<400H", source)
-# The most common existing metatile is a temporary base for all map cells.
-# We do not claim it is a correct grass, water, cliff or door tile.
-base = Counter(words).most_common(1)[0][0]
-distinct = [word for word, _ in Counter(words).most_common(12)]
-if len(distinct) < 9:
-    raise SystemExit("Not enough source metatile variety")
+# Explicit provisional metatile choices reviewed against the color atlases.
+# Secondary metatile IDs begin at 512. Building silhouettes remain placeholders.
 zone_words = {
-    ".": distinct[0], "=": distinct[1], "D": distinct[2],
-    "+": distinct[3], "A": distinct[1], "F": distinct[2],
-    "1": distinct[1], "2": distinct[1], "3": distinct[1],
-    "4": distinct[1], "5": distinct[1],
-    "M": distinct[4], "L": distinct[4], "H": distinct[4],
-    "S": distinct[4], "Q": distinct[4],
-    "R": distinct[5], "C": distinct[5], "T": distinct[6],
-    "^": distinct[7], "~": distinct[8],
+    ".": 1,           # primary grass
+    "=": 512 + 82,    # secondary sandy ground
+    "D": 512 + 82,    # provisional dock approach
+    "+": 512 + 82,    # door approach
+    "A": 512 + 82,    # arrival clearing
+    "F": 512 + 82,    # campfire not yet drawn
+    "1": 512 + 82, "2": 512 + 82, "3": 512 + 82,
+    "4": 512 + 82, "5": 512 + 82,
+    "M": 512 + 24, "L": 512 + 24, "H": 512 + 24,
+    "S": 512 + 24, "Q": 512 + 24,  # temporary wall segments
+    "R": 512 + 116,  # secondary masonry
+    "C": 112,        # primary rock
+    "T": 512 + 2,    # secondary foliage
+    "^": 112,        # primary rock
+    "~": 41,         # primary water
 }
+if any(len(row) != width or any(ch not in zone_words for ch in row) for row in plan["rows"]):
+    raise SystemExit("Invalid zone codes or row lengths")
+base = zone_words["."]
 # Encode actual GBA map-grid collision bits from the draft mask.
 # Metatile ID: bits 0-9; collision: bits 10-11; elevation: bits 12-15.
 if len(collision["rows"]) != height or any(len(row) != width for row in collision["rows"]):
@@ -84,11 +89,12 @@ manifest = {
     "bytes": len(tiles) * 2,
     "source_layout": "LAYOUT_LITTLEROOT_TOWN",
     "temporary_metatile_word": f"0x{base:04X}",
+    "tile_selection": "explicit provisional atlas-reviewed metatiles",
     "reachable_walkable_cells": len(seen),
     "landmarks_reachable": len(plan["landmarks"]),
     "blocked_cells": sum(c == "1" for row in collision["rows"] for c in row),
     "zone_metatile_words": {k: f"0x{v:04X}" for k, v in zone_words.items()},
-    "warning": "No mapped terrain variety, validated collision, event scripts, warps, map registration, or in-game testing.",
+    "warning": "Terrain preview only; buildings, dock, campfire, and edge transitions remain placeholders. In-game verification required.",
 }
 (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 print(f"Wrote {blockdata} ({blockdata.stat().st_size} bytes)")
