@@ -51,15 +51,15 @@ for mid in range(len(names)):
     metas.extend(refs+[0,0,0,0])
 assert len(tiles)<=512, f"Original art requires {len(tiles)} secondary 8x8 tiles; maximum 512"
 # Palette index 0 is transparent in the engine; the artwork uses it for cave openings.
-# Bottom layer is rendered on a grass-colored base by replacing index 0 with 1.
-# Preserve the original atlas separately for artistic comparison.
+# The engine renderer leaves transparent pixels black, matching index 0 in the
+# original palette. Preserve the original atlas for exact pixel comparison.
 sheet=Image.new("P",(128,256),0)
 sheet.putpalette([v for rgb in json.loads((ART/"metatile_manifest.json").read_text())["palette"] for v in rgb]+[0]*(768-48))
 for n,pixels in enumerate(tiles):
     tx=(n%16)*8;ty=(n//16)*8
     for y in range(8):
         for x in range(8):
-            sheet.putpixel((tx+x,ty+y),pixels[y*8+x] or 1)
+            sheet.putpixel((tx+x,ty+y),pixels[y*8+x])
 sheet.save(DEST/"tiles.png")
 metas.extend([0]*((512-len(names))*8))
 (DEST/"metatiles.bin").write_bytes(struct.pack("<4096H",*metas))
