@@ -150,11 +150,56 @@ OUT.mkdir(parents=True,exist_ok=True)
 # This is an early palette constraint, not yet a validated GBA tileset.
 im = im.quantize(colors=16, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert("RGB")
 im.save(OUT/"terrain_study.png")
+
+# Compose a playable-scale *visual study* to judge relationships between
+# ground, shoreline, camp equipment and vegetation. This is not a map file.
+SCENE_W, SCENE_H = 30, 20
+scene = Image.new("RGB", (SCENE_W * SIZE, SCENE_H * SIZE))
+scene_layout = []
+def stamp(tx, ty, atlas_index):
+    sx = (atlas_index % COLS) * SIZE
+    sy = (atlas_index // COLS) * SIZE
+    scene.paste(im.crop((sx, sy, sx + SIZE, sy + SIZE)), (tx * SIZE, ty * SIZE))
+    scene_layout.append({"x": tx, "y": ty, "atlas_index": atlas_index})
+
+for ty in range(SCENE_H):
+    for tx in range(SCENE_W):
+        # Controlled texture variation instead of uniformly scattered props.
+        idx = (tx * 11 + ty * 7) % 4
+        if ty >= 15 and tx >= 18:
+            idx = 8  # sheltered tidal water at southeast edge
+        elif ty == 14 and tx >= 18:
+            idx = 9  # shore transition
+        elif 7 <= ty <= 13 and 5 <= tx <= 24 and (11 <= tx <= 14 or 9 <= ty <= 10):
+            idx = 4 if (tx + ty) % 3 else 5  # worn crossroads
+        elif 1 <= ty <= 4 and 2 <= tx <= 27:
+            idx = 3  # darker forest margin
+        stamp(tx, ty, idx)
+
+# Place recognizable objects with deliberate negative space around the paths.
+# A larger tent and tree silhouette will require multi-metatile art in v2.
+props = [
+    (2, 3, 11), (5, 2, 11), (8, 3, 11), (23, 3, 11), (27, 4, 11),
+    (1, 8, 11), (27, 8, 11), (2, 15, 11), (6, 17, 11),
+    (8, 7, 12), (17, 7, 12), (20, 11, 12), (8, 12, 13),
+    (18, 8, 13), (19, 8, 13), (21, 12, 13),
+    (3, 11, 17), (25, 12, 17), (16, 4, 16),
+    (5, 12, 15), (16, 12, 15), (24, 6, 14),
+]
+for tx, ty, idx in props:
+    stamp(tx, ty, idx)
+scene.save(OUT/"camp_scene_study.png")
+scene.resize((SCENE_W * SIZE * 2, SCENE_H * SIZE * 2), Image.Resampling.NEAREST).save(
+    OUT/"camp_scene_study_2x.png"
+)
+
 import json
 (OUT/"manifest.json").write_text(json.dumps({
     "purpose":"original pixel art terrain study; not ROM-integrated",
     "tile_size":16,"columns":COLS,"rows":ROWS,
     "palette_colors":len(set(im.getdata())),
     "tiles":labels,
+    "scene_size_tiles":[SCENE_W,SCENE_H],
+    "scene_placements":scene_layout,
 },indent=2)+"\n")
 print(f"Created {OUT/'terrain_study.png'} with {len(labels)} 16x16 studies and {len(set(im.getdata()))} colors")
