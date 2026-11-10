@@ -8,6 +8,7 @@ on:
       - 'scripts/stage_landing_camp_map_templates.py'
       - 'scripts/generate_landing_camp_metatile_prototype.py'
       - 'scripts/audit_landing_camp_metatiles.py'
+      - 'scripts/render_landing_camp_metatile_atlas.py'
       - '.github/workflows/landing-camp-integration.yml'
 concurrency:
   group: landing-camp-integration-${{ github.ref }}
@@ -28,6 +29,17 @@ jobs:
           grep -F 'data/maps/MeridianLandingCampPrototype/scripts.inc' data/event_scripts.s
           grep -F 'MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE' src/new_game.c
           python3 -c 'from pathlib import Path; s=Path("data/event_scripts.s").read_text(); assert "\\\\n" not in s[-150:], "literal backslash-n in assembly"'
+      - name: Render metatile visual review sheets
+        run: |
+          python3 -m pip install --user Pillow
+          python3 scripts/render_landing_camp_metatile_atlas.py
+      - name: Upload visual metatile atlases
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-metatile-atlases
+          path: build/meridian_prototypes/metatile_atlas_*.png
+          if-no-files-found: error
+          retention-days: 14
       - name: Install compiler
         run: |
           sudo apt-get update
