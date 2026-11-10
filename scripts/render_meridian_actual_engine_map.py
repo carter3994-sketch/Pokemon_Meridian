@@ -14,10 +14,12 @@ OUT=ROOT/"build/meridian_candidate_review"
 OUT.mkdir(parents=True,exist_ok=True)
 stage=ROOT/"build/meridian_shady_forest_staging"
 primary=Image.open(ROOT/"data/tilesets/primary/general/tiles.png").convert("P")
+registered=ROOT/"data/tilesets/secondary/meridian_shady_forest"
+secondary_image=Image.open(registered/"tiles.png").convert("P") if (registered/"tiles.png").exists() else None
 secondary=(stage/"tiles.4bpp").read_bytes()
 metas=[
  (ROOT/"data/tilesets/primary/general/metatiles.bin").read_bytes(),
- (stage/"metatiles.bin").read_bytes()
+ ((registered/"metatiles.bin") if (registered/"metatiles.bin").exists() else (stage/"metatiles.bin")).read_bytes()
 ]
 metas=[struct.unpack("<"+"H"*(len(b)//2),b) for b in metas]
 plan=json.loads((ROOT/"data/meridian_plans/landing_camp_arrival.json").read_text())
@@ -31,13 +33,15 @@ pals={}
 for i in range(6):
  pals[i]=pal_file(ROOT/f"data/tilesets/primary/general/palettes/{i:02d}.pal")
 for i in range(6,16):
- p=stage/f"palettes/{i:02d}.pal"
+ p=(registered/f"palettes/{i:02d}.pal") if (registered/f"palettes/{i:02d}.pal").exists() else (stage/f"palettes/{i:02d}.pal")
  pals[i]=pal_file(p if p.exists() else stage/"palettes/06.pal")
 def pixel(tile,px,py):
  if tile<512:
   width=primary.width//8
   return primary.getpixel(((tile%width)*8+px,(tile//width)*8+py))
  index=tile-512
+ if secondary_image is not None:
+  return secondary_image.getpixel(((index%16)*8+px,(index//16)*8+py))
  if index>=len(secondary)//32:return 0
  b=secondary[index*32+py*4+px//2]
  return (b>>((px%2)*4))&15
