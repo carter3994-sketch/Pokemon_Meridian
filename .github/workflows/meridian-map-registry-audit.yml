@@ -1,0 +1,63 @@
+name: Meridian Map Registry Audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/meridian-map-registry-audit.yml'
+      - 'tools/meridian_map_audit.py'
+      - 'data/maps/**'
+      - 'data/layouts/**'
+  pull_request:
+    paths:
+      - '.github/workflows/meridian-map-registry-audit.yml'
+      - 'tools/meridian_map_audit.py'
+      - 'data/maps/**'
+      - 'data/layouts/**'
+permissions:
+  contents: read
+jobs:
+  validate-map-registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run map registry audit
+        id: audit
+        shell: bash
+        run: |
+          set +e
+          python3 tools/meridian_map_audit.py
+          status=$?
+          set -e
+          if [ -f build/meridian_map_audit/report.json ]; then
+            python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = json.loads(Path("build/meridian_map_audit/report.json").read_text())
+          lines = [
+              "## Meridian map registry audit",
+              f"- Registered maps: {report['total_registered_maps']}",
+              f"- Registered layouts: {report['total_layouts']}",
+              f"- Landing Camp name candidates: {len(report['landing_camp_candidates'])}",
+              f"- Errors: {len(report['errors'])}",
+          ]
+          for candidate in report["landing_camp_candidates"]:
+              lines.append(f"  - {candidate['name']} ({candidate['layout']})")
+          for error in report["errors"][:20]:
+              lines.append(f"  - ERROR: {error}")
+          summary = "\n".join(lines) + "\n"
+          print(summary)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(summary)
+          PY
+          fi
+          exit "$status"
+      - name: Upload registry audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-map-registry-report
+          path: build/meridian_map_audit/report.json
+          if-no-files-found: warn
