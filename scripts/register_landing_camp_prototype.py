@@ -139,7 +139,7 @@ for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interio
     # by the generated map table's map-script pointer.
     event_scripts_path = root / "data/event_scripts.s"
     with event_scripts_path.open("a") as event_file:
-        event_file.write(f'    .include "data/maps/{interior_name}/scripts.inc"\\n')
+        event_file.write(f'    .include "data/maps/{interior_name}/scripts.inc"\n')
     groups["gMapGroup_TownsAndRoutes"].append(interior_name)
     area["warp_events"].append({
         "x": x, "y": y, "elevation": 0,
