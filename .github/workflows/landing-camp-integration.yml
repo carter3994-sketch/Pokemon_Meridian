@@ -37,7 +37,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: meridian-landing-camp-metatile-atlases
-          path: build/meridian_prototypes/metatile_atlas_*.png
+          path: |
+            build/meridian_prototypes/metatile_atlas_*.png
+            build/meridian_prototypes/metatile_unresolved_*.txt
           if-no-files-found: error
           retention-days: 14
       - name: Install compiler
