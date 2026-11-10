@@ -1,0 +1,125 @@
+{
+  "schema": "meridian-map-plan-v1",
+  "status": "unapproved-engineering-plan-not-playable",
+  "area": "Expedition Landing Camp",
+  "phase": "arrival",
+  "width": 48,
+  "height": 40,
+  "coordinate_system": "zero-based top-left, x right, y down",
+  "legend": {
+    "1": "forest_exit",
+    "2": "coastal_exit",
+    "3": "cave_entrance",
+    "4": "ruins_gate",
+    "5": "north_trail",
+    ".": "natural_ground",
+    "=": "dirt_path",
+    "D": "dock",
+    "+": "building_door",
+    "A": "arrival",
+    "F": "campfire",
+    "M": "medical_building",
+    "L": "research_building",
+    "H": "headquarters",
+    "S": "supply_building",
+    "Q": "living_quarters",
+    "R": "ancient_ruins",
+    "C": "cliffside_cave",
+    "T": "forest_blocker",
+    "^": "cliff_blocker",
+    "~": "water_blocker"
+  },
+  "rows": [
+    "TTTTTTTTTTTTTTTTTTTT...5.....RRRRRR.^^^^^^^^^^^^",
+    "TTTTTTTTTTTTTTTTTTTT.........RRRRRR.^^^^^^^^^^^^",
+    "TTTTTTTTTTTTTTTTTTTT.........RRRRRR.^^^^^^^^^^^^",
+    "TTTTTTTTTTTTTTTTTTTT.........RRRRRR.^^^^^^^^^^^^",
+    "TTTTTTTTTTTTTTTTTTTT...========4RRR.^^^^^^^^^^^^",
+    "TTTTTTTTTTTTTTTTTTTT...==...........^^^^^^^^^^^^",
+    "TTTTTTTTT..............==HHHHHHHHH..^^^^^^^^^^^^",
+    "TTTTMMMMMMMM..LLLLLLLL.==HHHHHHHHH..^^^^^^CCCCC^",
+    "TTTTMMMMMMMM..LLLLLLLL.==HHHHHHHHH..^^^^^^CCCCC^",
+    "TTTTMMMMMMMM..LLLLLLLL.==HHHHHHHHH..^^^^^^CCCCC^",
+    "TTTTMMMMMMMM..LLLLLLLL.==HHH+HHHHH..^^^^^===3CC^",
+    "TTTTMMMM+MMM..LLLL+LLL.==...=.......^^^^^===CCC^",
+    "TTTTTTTT=============================^^^^=^^^^^^",
+    "........=============================^^^^=^^^^^^",
+    "~~~~~~~~~~~............==..........==^^^^=^^^^^^",
+    "~~~~~~~~~~~............==..........=======......",
+    "~~~~~~~~~~~............==..........=======......",
+    "~~~~~~~~~~~............==..........==...........",
+    "~~DDDDDDDDDDD~.........==..........==.SSSSSSSS..",
+    "~~DDDDDDDDDDD~...========..........==.SSSSSSSS..",
+    "~~DDDDDDDDDDD======F=====..........==.SSSSSSSS..",
+    "~~~~~~~~~~~~~============..........==.SSSSSSSS..",
+    "~~~~~~~~~~~.=========================.SSS+SSSS..",
+    "~~~~~~~~~~~.A========================....=......",
+    "~~~~~~~~~~~............==..........==.QQQQQQQQ..",
+    "~~~~~~~~~~~............==..........==.QQQQQQQQ..",
+    "~~~~~~~~~~~............==..........==.QQQQQQQQ..",
+    "~~~~~~~~~~~............==..........==.QQQ+QQQQ..",
+    "~~~~~~~~~~~............======================...",
+    "~~~~~~~~~~~............=====================2...",
+    "~~~~~~~~~~~............==.............TTTTTTTTTT",
+    "~~~~~~~~~~~............==.............TTTTTTTTTT",
+    "~~~~~~~~~~~............==.............TTTTTTTTTT",
+    "~~~~~~~~~~~...TTTTTTT..==.............TTTTTTTTTT",
+    "~~~~~~~~~~~...TTTTTTT..==.............TTTTTTTTTT",
+    "~~~~~~~~~~~...TTTTTTT..==.............TTTTTTTTTT",
+    "~~~~~~~~~~~...TTTTTTT..==.............TTTTTTTTTT",
+    "~~~~~~~~~~~...TTTTTTT..==.............TTTTTTTTTT",
+    "~~~~~~~~~~~...TTTTTTT..==.............TTTTTTTTTT",
+    "~~~~~~~~~~~...TTTTTTT..1=.............TTTTTTTTTT"
+  ],
+  "landmarks": {
+    "medical_door": [
+      8,
+      11
+    ],
+    "research_door": [
+      18,
+      11
+    ],
+    "hq_door": [
+      28,
+      10
+    ],
+    "supply_door": [
+      41,
+      22
+    ],
+    "quarters_door": [
+      41,
+      27
+    ],
+    "arrival": [
+      12,
+      23
+    ],
+    "campfire": [
+      19,
+      20
+    ],
+    "forest_exit": [
+      23,
+      39
+    ],
+    "coastal_exit": [
+      44,
+      29
+    ],
+    "cave_entrance": [
+      44,
+      10
+    ],
+    "ruins_gate": [
+      31,
+      4
+    ],
+    "north_trail": [
+      23,
+      0
+    ]
+  },
+  "note": "Concept planning only. No tile IDs, elevation, collisions, scripts, warps or approved engine assets."
+}
