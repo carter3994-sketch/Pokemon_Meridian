@@ -72,6 +72,17 @@ tile("waterfall", 10, lambda d: ([d.line((x,0,x-1,15),fill=11) for x in (3,8,13)
 tile("ship_bow", 10, lambda d: (d.polygon([(0,5),(15,1),(12,13),(3,15)],fill=6),d.line((0,5,15,1),fill=8)))
 tile("ship_stern", 10, lambda d: (d.polygon([(0,1),(15,5),(12,15),(3,13)],fill=6),d.line((0,1,15,5),fill=8)))
 tile("tent_roof", 4, lambda d: (d.polygon([(0,15),(8,0),(15,15)],fill=13),d.line((8,1,8,15),fill=8)))
+# Cohesive expedition-building facade modules with shading and material seams.
+tile("roof_ridge", 12, lambda d: (d.polygon([(0,10),(8,1),(15,10),(15,15),(0,15)],fill=13),d.line((0,10,8,1,15,10),fill=8)))
+tile("roof_left", 12, lambda d: (d.polygon([(0,14),(15,2),(15,15),(0,15)],fill=13),d.line((0,14,15,2),fill=8)))
+tile("roof_right", 12, lambda d: (d.polygon([(0,2),(15,14),(15,15),(0,15)],fill=13),d.line((0,2,15,14),fill=8)))
+tile("facade_pillar", 5, lambda d: (d.rectangle((2,0,5,15),fill=7),d.line((2,0,2,15),fill=6),d.line((5,0,5,15),fill=8)))
+tile("foundation", 12, lambda d: (d.rectangle((0,0,15,4),fill=6),d.line((0,5,15,5),fill=8),d.line((0,12,15,12),fill=13)))
+tile("awning", 8, lambda d: (d.polygon([(0,2),(15,2),(13,12),(2,12)],fill=13),d.line((0,2,15,2),fill=5),d.line((2,12,13,12),fill=6)))
+tile("ship_mast", 10, lambda d: (d.rectangle((7,0,9,15),fill=6),d.line((4,10,12,10),fill=8)))
+tile("ship_rigging", 10, lambda d: (d.line((0,15,8,0,15,15),fill=5),d.line((8,0,8,15),fill=6)))
+tile("water_edge_left", 10, lambda d: (d.polygon([(0,0),(6,0),(9,4),(7,9),(10,15),(0,15)],fill=5),d.line((6,0,9,4,7,9,10,15),fill=11)))
+tile("water_edge_right", 10, lambda d: (d.polygon([(10,0),(15,0),(15,15),(8,15),(6,9),(9,4)],fill=5),d.line((10,0,9,4,6,9,8,15),fill=11)))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
@@ -110,6 +121,20 @@ for code in "MLHSQ":
             grid[y][x] = "window"
         if y == top and x in (xs[0],xs[-1]):
             grid[y][x] = "roof_edge"
+# Distinguish roof ends and facade support bays using building geometry.
+for code in "MLHSQ":
+    coords = [(x,y) for y,row in enumerate(PLAN["rows"]) for x,ch in enumerate(row) if ch==code]
+    if not coords: continue
+    xs = sorted({x for x,y in coords})
+    top = min(y for x,y in coords)
+    bottom = max(y for x,y in coords)
+    for x,y in coords:
+        if y == top:
+            if x == xs[0]: grid[y][x] = "roof_left"
+            elif x == xs[-1]: grid[y][x] = "roof_right"
+            elif (x-xs[0])%4 == 2: grid[y][x] = "roof_ridge"
+        elif y == bottom and x in (xs[0],xs[-1]):
+            grid[y][x] = "facade_pillar"
 # Expose provisional material count in the workbench metadata for review.
 for name in ("medical_door","research_door","hq_door","supply_door","quarters_door"):
     x,y = PLAN["landmarks"][name]
@@ -143,6 +168,11 @@ for x in range(2,9):
     for y in range(17,20):
         if PLAN["rows"][y][x]=="~":
             grid[y][x] = "ship_deck" if y==17 else "ship_hull"
+# Make the hull terminate in dedicated bow/stern tiles, not repeating rectangles.
+for y in range(17,20):
+    for x,graphic in ((2,"ship_stern"),(8,"ship_bow")):
+        if PLAN["rows"][y][x]=="~":
+            grid[y][x]=graphic
 # Add a mast and a small ship silhouette without modifying collision.
 for x,y in ((4,16),(5,16),(6,16)):
     if PLAN["rows"][y][x]=="~": grid[y][x]="ship_sail"
