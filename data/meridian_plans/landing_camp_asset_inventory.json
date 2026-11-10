@@ -8,15 +8,17 @@
       "source": "https://github.com/jls-dchrn/HGSS_pokemon_tileset",
       "original_author": "SirMalo (attribution claimed by collection)",
       "roles": [
-        "forest",
-        "buildings",
-        "urban"
+        "buildings"
       ],
       "source_format": "RPG Maker XP / 32px grid",
       "license_status": "unverified",
       "visual_approval": false,
       "import_allowed": false,
-      "notes": "Find and verify original DeviantArt artwork and creator terms; collection repository alone does not establish a license."
+      "notes": "Verified public GitHub repository currently contains Buildings/ only (plus fused variants), despite README mentioning Nature/Urban. Rescaled 16px art to 32px for RPG Maker XP; original DeviantArt page blocks automated access, so artist's reuse terms remain unverified. Source is for comparison only.",
+      "original_asset_url": "https://www.deviantart.com/sirmaio/art/HGSS-for-RMXP-837574941",
+      "verified_files": [
+        "Buildings/Buildings_hgss_transparent.png"
+      ]
     },
     {
       "id": "gaia-collection",
