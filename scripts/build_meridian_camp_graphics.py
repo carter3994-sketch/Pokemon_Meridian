@@ -129,6 +129,16 @@ sd.polygon([(57,3),(74,7),(57,11)],fill=14)
 for qy in range(4):
     for qx in range(7):
         ART[f"vessel_{qx}_{qy}"]=ship.crop((qx*16,qy*16,qx*16+16,qy*16+16))
+# Directional shoreline geometry: all four cardinal banks, not one generic
+# repeated horizontal edge. These are tile art, not collision overrides.
+tile("shore_north", 10, lambda d: (d.polygon([(0,0),(15,0),(15,5),(10,7),(5,5),(0,8)],fill=5),d.line((0,9,5,6,10,8,15,6),fill=11)))
+tile("shore_south", 10, lambda d: (d.polygon([(0,9),(5,7),(10,9),(15,6),(15,15),(0,15)],fill=5),d.line((0,8,5,6,10,8,15,5),fill=11)))
+tile("shore_west", 10, lambda d: (d.polygon([(0,0),(7,0),(9,5),(7,10),(10,15),(0,15)],fill=5),d.line((8,0,10,5,8,10,11,15),fill=11)))
+tile("shore_east", 10, lambda d: (d.polygon([(9,0),(15,0),(15,15),(8,15),(6,10),(8,5)],fill=5),d.line((8,0,7,5,5,10,7,15),fill=11)))
+tile("shore_nw", 10, lambda d: (d.polygon([(0,0),(15,0),(15,5),(9,7),(7,15),(0,15)],fill=5),d.arc((4,2,17,16),180,270,fill=11)))
+tile("shore_ne", 10, lambda d: (d.polygon([(0,0),(15,0),(15,15),(8,15),(6,8),(0,5)],fill=5),d.arc((-2,2,11,16),270,360,fill=11)))
+tile("shore_sw", 10, lambda d: (d.polygon([(0,0),(7,0),(9,7),(15,9),(15,15),(0,15)],fill=5),d.arc((4,-2,17,11),90,180,fill=11)))
+tile("shore_se", 10, lambda d: (d.polygon([(8,0),(15,0),(15,15),(0,15),(0,9),(6,7)],fill=5),d.arc((-2,-2,11,11),0,90,fill=11)))
 names = list(ART)
 atlas = Image.new("P", (16*8, 16*((len(names)+7)//8)), 0)
 atlas.putpalette([v for rgb in COLORS for v in rgb] + [0]*(768-48))
@@ -207,8 +217,19 @@ for y,row in enumerate(PLAN["rows"]):
     for x,ch in enumerate(row):
         if ch=="T" and x%3==1 and y%3==1:
             grid[y][x]="tree_bloom" if (x+y)%7==0 else "tree_top"
-        elif ch=="~" and any(0<=xx<W and PLAN["rows"][y][xx] not in "~" for xx in (x-1,x+1)):
-            grid[y][x]="shore"
+        elif ch=="~":
+            # Dock remains over water, but its edge should not become sand.
+            land=lambda xx,yy: (0<=xx<W and 0<=yy<H and PLAN["rows"][yy][xx] not in "~D")
+            n,south=land(x,y-1),land(x,y+1)
+            west,east=land(x-1,y),land(x+1,y)
+            if n and west: grid[y][x]="shore_nw"
+            elif n and east: grid[y][x]="shore_ne"
+            elif south and west: grid[y][x]="shore_sw"
+            elif south and east: grid[y][x]="shore_se"
+            elif n: grid[y][x]="shore_north"
+            elif south: grid[y][x]="shore_south"
+            elif west: grid[y][x]="shore_west"
+            elif east: grid[y][x]="shore_east"
 # Compose 2x2 tree crowns from four matching quadrants, not isolated dots.
 # Only replace forest cells; never overwrite roads, door approaches or warps.
 for y in range(1,H-2,3):
