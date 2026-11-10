@@ -21,7 +21,22 @@ CELL_W, CELL_H = 16 * SCALE + 8, 16 * SCALE + 23
 
 for label, rel in SETS:
     folder = ROOT / rel
-    src = Image.open(folder / "tiles.png").convert("RGBA")
+    src = Image.open(folder / "tiles.png")
+    if src.mode != "P":
+        raise ValueError(f"Expected indexed PNG for {rel}, got {src.mode}")
+    def palette_for(palette_id):
+        # Emerald primary palettes occupy slots 0-5; secondary palettes 6-15.
+        palette_folder = folder if palette_id < 6 and label == "primary_general" or palette_id >= 6 and label == "secondary_petalburg" else None
+        if palette_folder is None:
+            palette_folder = ROOT / ("data/tilesets/primary/general" if palette_id < 6 else "data/tilesets/secondary/petalburg")
+        palette_path = palette_folder / "palettes" / f"{palette_id:02d}.pal"
+        if not palette_path.exists():
+            raise ValueError(f"Missing palette {palette_path}")
+        lines = palette_path.read_text().splitlines()
+        if lines[0] != "JASC-PAL":
+            raise ValueError(f"Unexpected palette format: {palette_path}")
+        return [tuple(map(int, line.split())) for line in lines[3:19]]
+    palettes = [palette_for(i) for i in range(16)]
     raw = (folder / "metatiles.bin").read_bytes()
     if len(raw) % 16:
         raise ValueError(f"Invalid metatile length for {rel}")
@@ -43,7 +58,10 @@ for label, rel in SETS:
                 tx, ty = (tile_id % tiles_per_row) * 8, (tile_id // tiles_per_row) * 8
                 if ty + 8 > src.height:
                     continue
-                patch = src.crop((tx, ty, tx + 8, ty + 8))
+                indices = src.crop((tx, ty, tx + 8, ty + 8))
+                palette = palettes[(word >> 12) & 15]
+                patch = Image.new("RGBA", (8, 8))
+                patch.putdata([(*palette[pixel & 15], 0 if layer == 1 and (pixel & 15) == 0 else 255) for pixel in indices.getdata()])
                 if word & 0x0400:
                     patch = patch.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
                 if word & 0x0800:
