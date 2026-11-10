@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "policy": "External visual assets must be explicitly approved and have independently verified reuse terms before incorporation into distributed game builds.",
+  "candidates": [
+    {
+      "id": "sirmalo-hgss",
+      "name": "SirMalo HGSS collection",
+      "source": "https://github.com/jls-dchrn/HGSS_pokemon_tileset",
+      "original_author": "SirMalo (attribution claimed by collection)",
+      "roles": [
+        "forest",
+        "buildings",
+        "urban"
+      ],
+      "source_format": "RPG Maker XP / 32px grid",
+      "license_status": "unverified",
+      "visual_approval": false,
+      "import_allowed": false,
+      "notes": "Find and verify original DeviantArt artwork and creator terms; collection repository alone does not establish a license."
+    },
+    {
+      "id": "gaia-collection",
+      "name": "Pokémon Gaia tileset collection",
+      "source": "https://eeveeexpo.com/resources/1377/",
+      "original_author": "multiple credited artists; verify per sheet",
+      "roles": [
+        "forest",
+        "cliffs",
+        "buildings",
+        "water"
+      ],
+      "source_format": "mixed; inspect each sheet",
+      "license_status": "unverified",
+      "visual_approval": false,
+      "import_allowed": false,
+      "notes": "Compilation notes possible missing credits/permissions. Do not import without individual provenance."
+    },
+    {
+      "id": "community-catalog",
+      "name": "Community Pokémon tileset index",
+      "source": "https://steamcommunity.com/sharedfiles/filedetails/?id=2436216636",
+      "original_author": "multiple creators; verify per sheet",
+      "roles": [
+        "forest",
+        "buildings",
+        "harbor"
+      ],
+      "source_format": "mixed",
+      "license_status": "index_only",
+      "visual_approval": false,
+      "import_allowed": false,
+      "notes": "Discovery catalog only. Follow individual DeviantArt artist pages."
+    }
+  ],
+  "required_roles": [
+    "forest",
+    "cliffs",
+    "waterfalls",
+    "shoreline",
+    "dock",
+    "ship",
+    "expedition_buildings",
+    "ruins"
+  ]
+}
