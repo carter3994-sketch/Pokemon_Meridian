@@ -38,18 +38,35 @@ zone_words = {
     "R": distinct[5], "C": distinct[5], "T": distinct[6],
     "^": distinct[7], "~": distinct[8],
 }
-tiles = [zone_words[cell] for row in plan["rows"] for cell in row]
+# Encode actual GBA map-grid collision bits from the draft mask.
+# Metatile ID: bits 0-9; collision: bits 10-11; elevation: bits 12-15.
+if len(collision["rows"]) != height or any(len(row) != width for row in collision["rows"]):
+    raise SystemExit("Invalid collision row dimensions")
+if any(value not in "01" for row in collision["rows"] for value in row):
+    raise SystemExit("Collision rows must contain only 0 or 1")
+tiles = [
+    (zone_words[cell] & 0x03FF) | (0x0C00 if collision["rows"][y][x] == "1" else 0) | 0x3000
+    for y, row in enumerate(plan["rows"])
+    for x, cell in enumerate(row)
+]
+for y in range(height):
+    for x in range(width):
+        word = tiles[y * width + x]
+        assert bool(word & 0x0C00) == (collision["rows"][y][x] == "1")
+        assert (word & 0xF000) == 0x3000
+
 out = root / "build/meridian_prototypes"
 out.mkdir(parents=True, exist_ok=True)
 blockdata = out / "landing_camp_arrival_placeholder_map.bin"
 blockdata.write_bytes(struct.pack(f"<{len(tiles)}H", *tiles))
 manifest = {
-    "status": "experimental-unregistered-nonplayable-placeholder",
+    "status": "experimental-placeholder-with-encoded-mapgrid-collision",
     "width": width,
     "height": height,
     "bytes": len(tiles) * 2,
     "source_layout": "LAYOUT_LITTLEROOT_TOWN",
     "temporary_metatile_word": f"0x{base:04X}",
+    "blocked_cells": sum(c == "1" for row in collision["rows"] for c in row),
     "zone_metatile_words": {k: f"0x{v:04X}" for k, v in zone_words.items()},
     "warning": "No mapped terrain variety, validated collision, event scripts, warps, map registration, or in-game testing.",
 }
