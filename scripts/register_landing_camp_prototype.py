@@ -89,7 +89,6 @@ interiors = (
     ("Quarters", "quarters_door", "LittlerootTown_BrendansHouse_1F", (9, 8), (8, 8)),
 )
 landmarks = json.loads((root / "data/meridian_plans/landing_camp_arrival.json").read_text())["landmarks"]
-existing_layouts = {entry["name"].removesuffix("_Layout"): entry for entry in registry["layouts"]}
 for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interiors):
     x, y = landmarks[landmark]
     if mask["rows"][y][x] != "0":
@@ -132,15 +131,16 @@ for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interio
     })
     interior_dir = maps / interior_name
     interior_dir.mkdir(parents=True, exist_ok=False)
-    (interior_dir / "map.json").write_text(json.dumps(indoor, indent=2) + "\\n")
+    (interior_dir / "map.json").write_text(json.dumps(indoor, indent=2) + "\n")
     (interior_dir / "scripts.inc").write_text(
-        f"{interior_name}_MapScripts::\\n    .byte 0\\n"
+        f"{interior_name}_MapScripts::\n    .byte 0\n"
     )
     groups["gMapGroup_TownsAndRoutes"].append(interior_name)
     area["warp_events"].append({
         "x": x, "y": y, "elevation": 0,
         "dest_map": interior_id, "dest_warp_id": "0",
     })
+(layouts_path).write_text(json.dumps(registry, indent=2) + "\n")
 if len(area["warp_events"]) != 5:
     raise SystemExit("Expected five paired building entrances")
 (map_dir / "map.json").write_text(json.dumps(area, indent=2) + "\n")
