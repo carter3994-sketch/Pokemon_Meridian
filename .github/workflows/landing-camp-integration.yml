@@ -11,6 +11,7 @@ on:
       - 'scripts/render_landing_camp_metatile_atlas.py'
       - 'scripts/build_meridian_camp_graphics.py'
       - 'scripts/register_meridian_shady_forest_tileset.py'
+      - 'scripts/render_meridian_actual_engine_map.py'
       - 'scripts/stage_meridian_shady_forest_tileset.py'
       - 'scripts/validate_meridian_art_sources.py'
       - 'data/meridian_plans/landing_camp_asset_inventory.json'
@@ -48,6 +49,8 @@ jobs:
           grep -F 'data/maps/MeridianLandingCampPrototype/scripts.inc' data/event_scripts.s
           grep -F 'MAP_MERIDIAN_LANDING_CAMP_PROTOTYPE' src/new_game.c
           python3 -c 'from pathlib import Path; s=Path("data/event_scripts.s").read_text(); assert "\\\\n" not in s[-150:], "literal backslash-n in assembly"'
+      - name: Render actual registered tileset against Landing Camp map binary
+        run: python3 scripts/render_meridian_actual_engine_map.py
       - name: Render metatile visual review sheets
         run: |
           python3 -m pip install --user Pillow
@@ -139,6 +142,8 @@ jobs:
           name: meridian-shady-forest-engine-registration
           path: |
             build/meridian_candidate_review/engine_registration_report.json
+            build/meridian_candidate_review/actual_engine_map_preview_report.json
+            build/meridian_candidate_review/landing_camp_actual_engine_tiles_preview.png
             build/meridian_shady_forest_staging/credits.md
           retention-days: 14
       - name: Upload experimental ROM
