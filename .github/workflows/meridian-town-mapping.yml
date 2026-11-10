@@ -66,8 +66,31 @@ jobs:
           PY
       - name: Validate map registry and layouts
         run: |
+          set +e
           python3 tools/meridian_map_audit.py
-          cp build/meridian_map_audit/report.json build/meridian_town_toolchain/map_registry_report.json
+          audit_status=$?
+          set -e
+          if [ -f build/meridian_map_audit/report.json ]; then
+            mkdir -p build/meridian_town_toolchain
+            cp build/meridian_map_audit/report.json build/meridian_town_toolchain/map_registry_report.json
+            python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = json.loads(Path("build/meridian_map_audit/report.json").read_text())
+          lines = [
+              "## Map registry validation",
+              f"- Registered maps: {report['total_registered_maps']}",
+              f"- Layouts: {report['total_layouts']}",
+              f"- Landing Camp name candidates: {len(report['landing_camp_candidates'])}",
+              f"- Registry errors: {len(report['errors'])}",
+          ]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          PY
+          fi
+          exit "$audit_status"
       - name: Upload toolchain and map inventory report
         if: always()
         uses: actions/upload-artifact@v4
