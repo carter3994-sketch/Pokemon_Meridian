@@ -1,6 +1,11 @@
 name: Meridian Tileset Authoring Tools
 on:
   workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/meridian-tileset-authoring.yml'
+      - 'scripts/export_meridian_tileset_authoring_atlas.py'
 permissions:
   contents: read
 jobs:
@@ -46,6 +51,7 @@ jobs:
       - name: Stage editable tileset authoring references
         run: |
           python3 scripts/stage_meridian_shady_forest_tileset.py
+          python3 scripts/stage_landing_camp_map_templates.py
           python3 scripts/register_meridian_shady_forest_tileset.py
           python3 scripts/export_meridian_tileset_authoring_atlas.py
       - name: Upload authoring package
