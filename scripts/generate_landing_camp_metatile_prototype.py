@@ -25,18 +25,18 @@ words = struct.unpack("<400H", source)
 # Secondary metatile IDs begin at 512. Building silhouettes remain placeholders.
 zone_words = {
     ".": 1,           # primary grass
-    "=": 512 + 82,    # secondary sandy ground
-    "D": 512 + 82,    # provisional dock approach
-    "+": 512 + 82,    # door approach
-    "A": 512 + 82,    # arrival clearing
-    "F": 512 + 82,    # campfire not yet drawn
-    "1": 512 + 82, "2": 512 + 82, "3": 512 + 82,
-    "4": 512 + 82, "5": 512 + 82,
-    "M": 512 + 24, "L": 512 + 24, "H": 512 + 24,
-    "S": 512 + 24, "Q": 512 + 24,  # temporary wall segments
-    "R": 512 + 116,  # secondary masonry
+    "=": 512 + 256,    # secondary sandy ground
+    "D": 512 + 256,    # provisional dock approach
+    "+": 512 + 256,    # door approach
+    "A": 512 + 256,    # arrival clearing
+    "F": 512 + 256,    # campfire not yet drawn
+    "1": 512 + 256, "2": 512 + 256, "3": 512 + 256,
+    "4": 512 + 256, "5": 512 + 256,
+    "M": 512 + 180, "L": 512 + 180, "H": 512 + 180,
+    "S": 512 + 180, "Q": 512 + 180,  # temporary wall segments
+    "R": 512 + 220,  # secondary masonry
     "C": 112,        # primary rock
-    "T": 512 + 2,    # secondary foliage
+    "T": 512 + 116,    # secondary foliage
     "^": 112,        # primary rock
     "~": 41,         # primary water
 }
@@ -44,12 +44,15 @@ if any(len(row) != width or any(ch not in zone_words for ch in row) for row in p
     raise SystemExit("Invalid zone codes or row lengths")
 base = zone_words["."]
 primary_count = (root / "data/tilesets/primary/general/metatiles.bin").stat().st_size // 16
-secondary_count = (root / "data/tilesets/secondary/petalburg/metatiles.bin").stat().st_size // 16
+secondary_count = (root / "build/meridian_shady_forest_staging/metatiles.bin").stat().st_size // 16
 if primary_count != 512:
     raise SystemExit(f"Unexpected primary metatile count: {primary_count}")
+secondary_words = struct.unpack("<" + "H" * (secondary_count * 8), (root / "build/meridian_shady_forest_staging/metatiles.bin").read_bytes())
 for code, tile_id in zone_words.items():
     if not (0 <= tile_id < primary_count or 512 <= tile_id < 512 + secondary_count):
         raise SystemExit(f"Invalid metatile for zone {code}: {tile_id}")
+    if tile_id >= 512 and all(v == 0 for v in secondary_words[(tile_id-512)*8:(tile_id-511)*8]):
+        raise SystemExit(f"Blank Shady Forest metatile selected for zone {code}: {tile_id}")
 
 # Encode actual GBA map-grid collision bits from the draft mask.
 # Metatile ID: bits 0-9; collision: bits 10-11; elevation: bits 12-15.
