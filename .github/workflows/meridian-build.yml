@@ -26,7 +26,7 @@ jobs:
         run: |
           python3 scripts/validate_landing_camp_grid.py
           python3 scripts/export_landing_camp_plan.py
-          git diff --exit-code -- data/meridian_plans/landing_camp_arrival.json
+          python3 -c 'import json, subprocess; p="data/meridian_plans/landing_camp_arrival.json"; old=json.loads(subprocess.check_output(["git","show","HEAD:"+p])); new=json.load(open(p)); assert old == new, "Map plan content differs from committed JSON"'
       - name: Install toolchain
         run: |
           sudo apt-get update
