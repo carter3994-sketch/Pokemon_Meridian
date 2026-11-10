@@ -5,6 +5,8 @@ on:
     branches: [develop]
     paths:
       - 'scripts/audit_meridian_candidate_tileset.py'
+      - 'scripts/audit_meridian_terrain_roles.py'
+      - 'data/meridian_plans/landing_camp_arrival.json'
       - 'scripts/build_meridian_candidate_contact_sheet.py'
       - '.github/workflows/landing-camp-candidate-review.yml'
 jobs:
@@ -14,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Pillow
         run: python3 -m pip install Pillow
+      - name: Audit map terrain and required art transitions
+        run: python3 scripts/audit_meridian_terrain_roles.py
       - name: Fetch source example art for visual evaluation only
         run: |
           mkdir -p build/meridian_candidate_review
