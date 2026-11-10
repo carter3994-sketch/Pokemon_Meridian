@@ -146,6 +146,9 @@ for i in range(COLS*ROWS):
     # Later atlas rows are variations, not duplicates of the same bitmap.
     tile(i,f"{label} variation {i//len(families)+1}",base,fn)
 OUT.mkdir(parents=True,exist_ok=True)
+# Single shared 16-color study palette, including all terrain families.
+# This is an early palette constraint, not yet a validated GBA tileset.
+im = im.quantize(colors=16, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert("RGB")
 im.save(OUT/"terrain_study.png")
 import json
 (OUT/"manifest.json").write_text(json.dumps({
