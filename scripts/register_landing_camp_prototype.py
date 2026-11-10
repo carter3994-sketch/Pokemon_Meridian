@@ -199,10 +199,10 @@ MeridianLandingCamp_Text_Kael:
     .string "My people call this land AEVOR.\\nIt was never empty.$"
 
 MeridianLandingCamp_Text_Researcher:
-    .string "Welcome to MERIDIAN. The natives call it AEVOR.$"
+    .string "Welcome to MERIDIAN.\\nThe natives call it AEVOR.$"
 
 MeridianLandingCamp_Text_Quartermaster:
-    .string "Supplies are limited. Stay near camp.$"
+    .string "Supplies are limited.\\nStay near camp.$"
 """)
 # The engine's event assembly includes are explicit, not inferred from map_groups.
 event_scripts_path = root / "data/event_scripts.s"
