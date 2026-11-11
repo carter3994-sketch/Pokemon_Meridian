@@ -9,6 +9,8 @@ from pathlib import Path
 import json
 from PIL import Image, ImageDraw
 
+from meridian_camp_terrain import apply_camp_terrain
+
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "build/meridian_camp_art"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -16,12 +18,9 @@ PLAN = json.loads((ROOT / "data/meridian_plans/landing_camp_arrival.json").read_
 W, H = PLAN["width"], PLAN["height"]
 assert (W, H) == (48, 40)
 # One 16-color palette; color 0 is reserved for transparency.
-COLORS = [
-    (0, 0, 0), (48, 91, 51), (72, 128, 64), (127, 168, 79),
-    (180, 164, 109), (210, 190, 137), (111, 85, 69), (150, 108, 79),
-    (193, 139, 96), (69, 92, 114), (91, 137, 156), (146, 185, 184),
-    (75, 74, 88), (129, 127, 135), (220, 160, 174), (246, 207, 207),
-]
+TERRAIN_MATERIALS = Image.open(ROOT / "graphics/meridian/landing_camp/terrain_materials.png")
+terrain_palette = TERRAIN_MATERIALS.getpalette()
+COLORS = [tuple(terrain_palette[i:i+3]) for i in range(0, 48, 3)]
 ART = {}
 def tile(name, ground, paint):
     im = Image.new("P", (16, 16), ground)
@@ -392,80 +391,7 @@ for y in range(H):
             # tiles share the same source texture, including along roof runs.
             phase=(x+2*y)%5
             if phase: grid[y][x]=f"{base}_material_{phase}"
-# Ground textures share a palette and are used below both architecture and
-# trees. Work at the native map resolution so individual blades stay legible.
-ground_names = []
-for phase in range(12):
-    name = f"meadow_{phase}"
-    def paint_meadow(draw):
-        for index, (x, y) in enumerate(((2, 5), (9, 4), (6, 12), (13, 10))):
-            x = 1 + (x + phase * (index + 1)) % 13
-            y = 2 + (y + phase * (4 - index)) % 12
-            draw.line((x, y, x + 2, y + 1), fill=1)
-            draw.point((x + 1, y - 1), fill=3)
-            if index < 2:
-                draw.point((x, y - 2), fill=3)
-                draw.point((x + 2, y - 1), fill=3)
-        draw.point(((phase * 7 + 3) % 16, (phase * 11 + 7) % 16), fill=3)
-        if phase >= 8:
-            for x, y in ((5, 11), (11, 13)):
-                draw.line((x, y, x-2, y-4), fill=1)
-                draw.line((x, y, x+2, y-4), fill=1)
-                draw.line((x-2, y-4, x-3, y-5), fill=3)
-                draw.point((x+2, y-5), fill=3)
-                if phase in (8, 9):
-                    petal = 14 if phase == 8 else 5
-                    draw.line((x, y-6, x, y-4), fill=petal)
-                    draw.line((x-1, y-5, x+1, y-5), fill=petal)
-                    draw.point((x, y-5), fill=8)
-                else:
-                    draw.line((x, y-5, x, y-1), fill=3)
-    tile(name, 2, paint_meadow)
-    ground_names.append(name)
-
-
-def meadow(x, y):
-    # Mix both coordinates to avoid diagonal stripes across large meadows.
-    seed = ((x+1)*73856093) ^ ((y+1)*19349663) ^ ((x+3)*(y+7)*83492791)
-    parity = (x+y) % 2
-    cluster = ((x//3+1)*37 + (y//3+1)*19) % 11
-    if cluster < 4 and (seed >> 10) % 5 < 2:
-        return ground_names[8 + parity + 2*(cluster >= 2)]
-    return ground_names[parity + 2*((seed >> 5) % 4)]
-
-
-path_cells = set("=+A12345F")
-path_neighbors = path_cells | {"D"}
-edges = ((0, -1), (1, 0), (0, 1), (-1, 0))
-for y, row in enumerate(PLAN["rows"]):
-    for x, cell in enumerate(row):
-        if cell in ".THMLSQR":
-            grid[y][x] = meadow(x, y)
-        elif cell in path_cells:
-            sides = tuple(0 <= x+dx < W and 0 <= y+dy < H
-                          and PLAN["rows"][y+dy][x+dx] in path_neighbors for dx, dy in edges)
-            phase = (x + 2*y) % 3
-            name = f"trail_{''.join(str(int(side)) for side in sides)}_{phase}"
-            if name not in ART:
-                trail = ART[ground_names[phase]].copy()
-                draw = ImageDraw.Draw(trail)
-                for py in range(16):
-                    for px in range(16):
-                        distances = (py, 15-px, 15-py, px)
-                        edge_distance = min((d for d, connected in zip(distances, sides)
-                                             if not connected), default=16)
-                        drift = ((px*3 + py*5 + phase*7) % 11 == 0)
-                        if edge_distance >= 3 or (edge_distance == 2 and not drift):
-                            draw.point((px, py), fill=4)
-                        elif edge_distance == 1 and drift:
-                            draw.point((px, py), fill=5)
-                for px, py in ((4+phase, 4), (12, 6+phase), (6, 12), (11, 11)):
-                    if trail.getpixel((px, py)) == 4:
-                        draw.point((px, py), fill=5)
-                        if px == 6:
-                            draw.point((px+1, py), fill=6)
-                ART[name] = trail
-            grid[y][x] = name
+meadow = apply_camp_terrain(ART, grid, PLAN["rows"], TERRAIN_MATERIALS)
 
 # Keep the expedition sprites and their palettes. Give each building a
 # character-scale silhouette with its base and doorway anchored to the map.
@@ -596,7 +522,7 @@ def paint_campfire(draw):
     draw.point((7, 3), fill=8)
 
 
-tile("campfire_ring", 4, paint_campfire)
+tile("campfire_ring", 0, paint_campfire)
 def paint_gangway(draw):
     draw.rectangle((2, 0, 13, 15), fill=6)
     draw.rectangle((4, 0, 11, 15), fill=7)
@@ -633,6 +559,7 @@ for yy,row in enumerate(PLAN["rows"]):
                 dock_deck(name, phase, west, north, south)
             grid[yy][xx] = name
         elif ch=="F":
+            underlays["campfire_ring"] = grid[yy][xx]
             grid[yy][xx] = "campfire_ring"
         elif ch=="~" and grid[yy][xx].startswith("expedition_ship_"):
             underlays[grid[yy][xx]]=f"env_ocean_{xx%2+2*(yy%2)}"
