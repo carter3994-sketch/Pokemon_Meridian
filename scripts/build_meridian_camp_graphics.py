@@ -10,6 +10,7 @@ import json
 from PIL import Image, ImageDraw
 
 from meridian_camp_terrain import apply_camp_terrain
+from meridian_water_animation import build_water_frames, FRAMES_PER_STEP
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "build/meridian_camp_art"
@@ -467,20 +468,13 @@ for asset,slot in env_specs:
 for asset in ("env_cliff_wall_0_0","env_cliff_wall_0_1","env_cliff_lip_0_0"):
     ART[asset+"_flip"]=ART[asset].transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     module_slots[asset+"_flip"]=0
-shore=ART["env_shore_0_0"]
-for direction,rotation in (("north",None),("south",Image.Transpose.ROTATE_180),
-                            ("east",Image.Transpose.ROTATE_270),("west",Image.Transpose.ROTATE_90)):
-    ART[f"env_shore_{direction}"]=shore.copy() if rotation is None else shore.transpose(rotation)
-    module_slots[f"env_shore_{direction}"]=1
-# Four distinct ocean metatiles from the authored seamless water patch.
-for phase in range(4):
-    name=f"env_ocean_{phase}"
-    ART[name]=ART[f"env_ocean_{phase%2}_{phase//2}"].copy()
-    module_slots[name]=1
-for direction in ("north","south","east","west"):
-    name=f"env_shore_{direction}"
-    ART[name+"_alt"]=ART[name].transpose(Image.Transpose.FLIP_LEFT_RIGHT if direction in ("north","south") else Image.Transpose.FLIP_TOP_BOTTOM)
-    module_slots[name+"_alt"]=1
+reef_sites = [(f"sea_reef_{phase}_{x}_{y}",x,y,phase)
+              for x,y,phase in ((3,23,0),(8,25,1),(7,31,0),(9,36,1))]
+water_frames = build_water_frames(ROOT/"graphics/meridian/landing_camp",
+                                  [(name,x,y) for name,x,y,_ in reef_sites])
+for name, frames in water_frames.items():
+    ART[name] = frames[0]
+    module_slots[name] = 1
 # Draw a layered sea cliff on top of the existing foamy waterline.
 # The rock silhouette stops above the foam rather than painting over it.
 for facing, rotation in (("east", None), ("north", Image.Transpose.ROTATE_90),
@@ -609,18 +603,9 @@ for yy,row in enumerate(PLAN["rows"]):
                 grid[yy][xx] = f"env_shore_{facing}" + ("_alt" if phase else "")
             else:
                 grid[yy][xx] = ocean
-for x, y, phase in ((3,23,0),(8,25,1),(7,31,0),(9,36,1)):
-    name = f"sea_reef_{phase}_{x}_{y}"
-    source = f"sea_reef_{phase}"
-    ART[name] = ART[source]
+for name, x, y, phase in reef_sites:
+    ART[name] = ART[f"sea_reef_{phase}"]
     module_slots[name] = 0
-    foam = ART[f"env_ocean_{x%2+2*(y%2)}"].copy()
-    draw = ImageDraw.Draw(foam)
-    draw.arc((1,5,15,15), 15, 165, fill=3)
-    draw.point((4,14),fill=1)
-    draw.point((12,14),fill=1)
-    ART[f"{name}_foam"] = foam
-    module_slots[f"{name}_foam"] = 1
     underlays[name] = f"{name}_foam"
     grid[y][x] = name
 def env_stamp(asset,ox,oy,width,height):
@@ -694,6 +679,11 @@ atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name],((i%8)*16,(i//8)*16))
 atlas.save(OUT/"camp_original_metatiles_indexed.png")
+(OUT/"water_animation.json").write_text(json.dumps({
+    "frames_per_step": FRAMES_PER_STEP,
+    "metatiles": {name: [frame.tobytes().hex() for frame in frames]
+                  for name, frames in water_frames.items() if name in used_art},
+})+"\n")
 (OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"underlays":underlays,"covered":covered,"border":border,"forest_placements":forest_placements,"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):

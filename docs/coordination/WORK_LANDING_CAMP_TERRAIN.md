@@ -17,3 +17,9 @@ The southwest shoreline now has rock faces over the foamy waterline, two coves, 
 The camp shrine has moved to a separate 24 × 20 wooded ruins map with a paved forecourt, fragmented pillars and rear court. The camp trail branches north to the ruins and has a paired return warp. The former shrine site is meadow and forest.
 
 Six custom room layouts now have a dedicated expedition tileset and paired doors. Headquarters has a briefing station, research has capsule equipment, medical and quarters have beds, and the two supply rooms have separate shelving and counters. Provision uses the existing storefront door. These rooms are staged for the playtest and retain room for story, interactions and polish.
+
+## Water animation
+
+The ocean swatch now has moving wavelets. The shore and reef foam shift with the swell, and bands of light move down the falls and out through the splash. The water beneath the ship, dock edges and gangway is part of the same animation.
+
+The art exporter produces eight frames. The native compiler reserves a contiguous range in the camp's primary tile bank, keeps static art out of that range, and queues a single transfer through Emerald's tileset animation system every eight display frames. Collision and elevation were compared with `10277be9` across all 1,920 camp cells. Runtime evidence is in PR #10.
