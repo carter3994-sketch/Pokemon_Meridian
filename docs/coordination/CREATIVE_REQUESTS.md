@@ -1,23 +1,32 @@
 # Pokémon: Meridian — Creative Requests & Approvals
 **Owner:** ChatGPT Project. **Updated:** 2026-11-10.
 
-## Pending creative review — Chapter 1: The Last Shore
-**Status:** DRAFT / not authorized as final script.
+## Chapter 1: The Last Shore — FULL REVISION REQUESTED
+**Status:** HOLD / awaiting owner's complete rewrite instructions; existing narrative draft is superseded for implementation purposes.
 
-The owner chose a desperate, chaotic emergency landfall with a damaged ship and dwindling supplies. The earlier proposed chapter treatment includes: character creation; cramped ship voyage; rival encounter; sighting the cliffs of Aevor; deliberate grounding; awakening in a medical shelter; urgent expedition resource briefing; starter encounter and rival battle; Kael's warning at the forest edge; nighttime disturbance at ruins.
+On 2026-11-10 the owner selected the six **structural directions** recorded in [CREATIVE_DECISIONS.md](CREATIVE_DECISIONS.md), **and explicitly requested the entirety of Chapter 1 be revised** after they send new instructions. Do not interpret the selected answers as approval of the current dialogue or finished scenes.
 
-### Decisions still needed
-1. **Chapter boundary:** End with the ominous nighttime campfire disturbance, or continue through the first dangerous forest mission and freshwater discovery? Creative recommendation: include a short playable freshwater expedition before chapter end to balance cinematic opening with player agency.
-2. **Ship and camp timing:** Should arrival be followed by a time jump to an already partially built camp, or does the player help establish the first functional camp? Visual map should match the approved Landing Camp reference either way.
-3. **Starter discovery:** Draft proposes recovery from a coastal nesting site, but this is not yet approved; ensure starter origin respects Aevor's guardians and native perspective.
-4. **Rival name and opening dialogue:** Not approved yet; retain placeholder labels in drafts only.
-5. **First native contact:** Kael's entrance and precise dialogue are draft-only; preserve agency and avoid flattening him into an exposition source.
-6. **Gameplay safety/pacing:** Determine accessible camp routes and whether early exploration includes a first tutorial battle, food/water task and guarded forest boundary.
+### Owner-approved working framework, subject to detailed revision
+- Nine beats culminating in a first forest/freshwater survival mission and nighttime disturbance.
+- Several-day transition after grounding to a partially erected camp.
+- Three starter Pokémon approach expedition of their own accord for mysterious reasons.
+- Rival name unselected.
+- Kael initially encounters the party at northern forest boundary.
+- Camp exploration, rival battle, introductory wild encounters, initial survival mission.
 
-## Handoff guidance for Codex and Work
-- **Codex:** May create reusable event flags, menus, dialogue framework and starter-selection infrastructure. **Do not permanently install draft Chapter 1 dialogue/scenes without owner signoff.**
-- **Work:** Continue approved Landing Camp visuals. Do not remodel the map around speculative script beats.
-- **ChatGPT Project:** Present the Chapter 1 pacing decision to owner; finalize event/delivery specification only after approvals.
+### Blocked until new owner direction
+- Every scene's final writing, sequencing detail and dialogue.
+- Opening voyage/shipwreck specifics, NPC names, camp timeline transitions.
+- Starter handoff circumstances and rival-selection choreography.
+- Kael's final lines and first-contact tone.
+- Forest mission details (location, enemies, rewards, resource discovery).
+- Nighttime disturbance visuals, effects and end-of-chapter final cutscene.
+- Final scripted event specification for Codex.
 
-## Response workflow
-For each accepted decision, move it to `CREATIVE_DECISIONS.md` with approval context, and update this file to mark resolved. Keep draft and approved content clearly differentiated.
+### Handoff guidance
+**Codex:** Continue independent, reusable gameplay framework and technical tests; do **not** implement current Chapter 1 narrative dialogue/scene scripts as canon until the owner accepts the rewritten treatment.  
+**Work:** Continue approved visual Landing Camp work. Do **not** alter the approved layout in service of the existing draft story.  
+**ChatGPT Project:** Receive owner's complete requested revisions, rewrite the entirety, then seek explicit approval before promoting to approved design documents.
+
+## Next step
+Await the owner's own Chapter 1 rewrite instructions. Do not solicit individual scene approvals before hearing the complete requested changes.
