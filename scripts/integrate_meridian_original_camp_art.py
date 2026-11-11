@@ -34,7 +34,7 @@ def cells(layer):
 gids,collision=[cells(layer) for layer in root.findall('layer')[:2]]
 assert all(1<=gid<=len(names) for gid in gids)
 assert all(value in (0,1) for value in collision)
-border_names = manifest["border"]
+border_names = manifest["border"] + manifest["sea_border"]
 border_ids = [names.index(name) for name in border_names]
 used_ids = sorted({gid-1 for gid in gids} | set(border_ids))
 layer_shift = int(re.search(r"#define METATILE_ATTR_LAYER_SHIFT\s+(\d+)",
@@ -192,7 +192,7 @@ for slot,palette in manifest.get('palettes',{'6':manifest['palette']}).items():
 words=[map_ids[gid-1]|(0xC00 if blocked else 0)|0x3000 for gid,blocked in zip(gids,collision)]
 camp_layout = ROOT / 'data/layouts/MeridianLandingCampPrototype'
 (camp_layout / 'map.bin').write_bytes(struct.pack('<1920H', *words))
-(camp_layout / 'border.bin').write_bytes(struct.pack('<4H', *(map_ids[mid] for mid in border_ids)))
+(camp_layout / 'border.bin').write_bytes(struct.pack(f'<{len(border_ids)}H', *(map_ids[mid] for mid in border_ids)))
 # Register a private primary bank: General is shared by the rest of Emerald
 # and must never be overwritten to make room for camp art.
 symbol='MeridianCampEnvironment'
@@ -254,6 +254,29 @@ source=target.read_text()
 declaration=f'extern const struct Tileset gTileset_{symbol};'
 if declaration not in source:
     target.write_text(source.replace('extern const struct Tileset gTileset_General;',f'extern const struct Tileset gTileset_General;\n{declaration}',1))
+# The sea meets the west and southwest edges of Landing Camp. Keep those
+# padded camera cells animated and impassable instead of wrapping meadow.
+fieldmap = ROOT/'src/fieldmap.c'
+source = fieldmap.read_text()
+if '#include "tilesets.h"' not in source:
+    source = source.replace('#include "fieldmap.h"','#include "fieldmap.h"\n#include "tilesets.h"',1)
+if 'mapLayout->primaryTileset == &gTileset_MeridianCampEnvironment' not in source:
+    anchor = '    int i = (x + 1) & 1;'
+    assert source.count(anchor) == 1
+    shore_y = next(i for i,row in enumerate(plan['rows']) if row[0] == '~')
+    shore_x = plan['rows'][-1].index(next(ch for ch in plan['rows'][-1] if ch != '~'))
+    guard = f"""    if (mapLayout->primaryTileset == &gTileset_MeridianCampEnvironment
+     && ((x < MAP_OFFSET && y >= MAP_OFFSET + {shore_y})
+      || (y >= MAP_OFFSET + mapLayout->height && x < MAP_OFFSET + {shore_x})))
+    {{
+        int phase = ((x - MAP_OFFSET) & 1) + 2 * ((y - MAP_OFFSET) & 1);
+        return mapLayout->border[4 + phase] | MAPGRID_IMPASSABLE;
+    }}
+
+"""
+    source = source.replace(anchor,guard+anchor,1)
+fieldmap.write_text(source)
+
 target=ROOT/'data/layouts/layouts.json'
 layouts=json.loads(target.read_text())
 layout=next(v for v in layouts['layouts'] if v['id']=='LAYOUT_MERIDIAN_LANDING_CAMP_PROTOTYPE')

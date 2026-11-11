@@ -23,3 +23,9 @@ Six custom room layouts now have a dedicated expedition tileset and paired doors
 The ocean swatch now has moving wavelets. The shore and reef foam shift with the swell, and bands of light move down the falls and out through the splash. The water beneath the ship, dock edges and gangway is part of the same animation.
 
 The art exporter produces eight frames. The native compiler reserves a contiguous range in the camp's primary tile bank, keeps static art out of that range, and queues a single transfer through Emerald's tileset animation system every eight display frames. Collision and elevation were compared with `10277be9` across all 1,920 camp cells. Runtime evidence is in PR #10.
+
+## Camp composition and water readability
+
+Replaced the speckled ocean with a clean blue ramp, directional swells, and a few brighter crests. Wet edges now consider cardinal and diagonal neighbors, so foam wraps the coves and pools. The harbor camera border continues the ocean instead of repeating meadow outside the map.
+
+The cliffside now has a wooded crest, a source pool, one continuous drop over the actual cliff face, and a plunge basin. The camp paths form a continuous apron from the dock, and the fire circle, benches, supply crates, and low plants give the middle of camp a visible gathering area. Existing entrance coordinates and the approved building silhouettes are retained. The additional obstacles and water use explicit collision and retain walkable routes to every entrance.

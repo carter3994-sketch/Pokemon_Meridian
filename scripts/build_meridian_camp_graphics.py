@@ -10,7 +10,7 @@ import json
 from PIL import Image, ImageDraw
 
 from meridian_camp_terrain import apply_camp_terrain
-from meridian_water_animation import build_water_frames, FRAMES_PER_STEP
+from meridian_water_animation import build_water_frames, FRAMES_PER_STEP, WATER_COLORS
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "build/meridian_camp_art"
@@ -470,27 +470,12 @@ for asset in ("env_cliff_wall_0_0","env_cliff_wall_0_1","env_cliff_lip_0_0"):
     module_slots[asset+"_flip"]=0
 reef_sites = [(f"sea_reef_{phase}_{x}_{y}",x,y,phase)
               for x,y,phase in ((3,23,0),(8,25,1),(7,31,0),(9,36,1))]
-water_frames = build_water_frames(ROOT/"graphics/meridian/landing_camp",
-                                  [(name,x,y) for name,x,y,_ in reef_sites])
+water_frames, shore_names = build_water_frames(ROOT/"graphics/meridian/landing_camp",
+                                  [(name,x,y) for name,x,y,_ in reef_sites], PLAN["rows"])
+module_palettes["1"] = WATER_COLORS
 for name, frames in water_frames.items():
     ART[name] = frames[0]
     module_slots[name] = 1
-# Draw a layered sea cliff on top of the existing foamy waterline.
-# The rock silhouette stops above the foam rather than painting over it.
-for facing, rotation in (("east", None), ("north", Image.Transpose.ROTATE_90),
-                         ("south", Image.Transpose.ROTATE_270), ("west", Image.Transpose.ROTATE_180)):
-    for phase in range(2):
-        rock = ART[f"env_cliff_wall_0_{phase}"].copy()
-        for y in range(16):
-            width = (8, 8, 9, 9, 10, 10, 9, 9, 8, 8, 7, 7, 8, 9, 9, 8)[y]
-            if phase:
-                width = 17 - width
-            for x in range(16-width):
-                rock.putpixel((x,y), 0)
-        name = f"sea_cliff_{facing}_{phase}"
-        ART[name] = rock if rotation is None else rock.transpose(rotation)
-        module_slots[name] = 0
-        underlays[name] = f"env_shore_{facing}" + ("_alt" if phase else "")
 
 # Two small reef shapes reuse the cliff palette over ocean foam.
 for phase, outline in enumerate((
@@ -539,16 +524,16 @@ def dock_deck(name, phase, west, north, south):
 
 
 def paint_campfire(draw):
-    draw.ellipse((1, 7, 14, 15), fill=6)
-    draw.ellipse((3, 8, 12, 13), fill=12)
-    for x, y in ((2, 10), (4, 8), (11, 8), (12, 11), (10, 13), (5, 13)):
-        draw.rectangle((x, y, x + 1, y + 1), fill=13)
-        draw.point((x, y), fill=5)
-    draw.line((5, 11, 10, 8), fill=7, width=2)
-    draw.line((5, 9, 10, 12), fill=8, width=2)
-    draw.polygon(((6, 11), (5, 6), (7, 7), (9, 1), (9, 6), (11, 5), (10, 11)), fill=8)
-    draw.polygon(((7, 11), (7, 8), (9, 5), (9, 9), (10, 10), (9, 11)), fill=5)
-    draw.point((7, 3), fill=8)
+    draw.ellipse((0,8,15,15),fill=6)
+    draw.ellipse((2,9,13,14),fill=12)
+    for x,y in ((1,11),(3,9),(11,9),(13,11),(11,14),(4,14)):
+        draw.rectangle((x,y,x+1,y+1),fill=13)
+        draw.point((x,y),fill=5)
+    draw.line((4,12,11,9),fill=7,width=2)
+    draw.line((4,9,11,13),fill=8,width=2)
+    draw.polygon(((5,12),(4,6),(7,8),(8,0),(11,5),(11,8),(13,6),(11,12)),fill=8)
+    draw.polygon(((6,12),(6,8),(8,4),(9,8),(10,6),(11,10),(10,12)),fill=5)
+    draw.point((6,3),fill=5)
 
 
 tile("campfire_ring", 0, paint_campfire)
@@ -593,16 +578,8 @@ for yy,row in enumerate(PLAN["rows"]):
         elif ch=="~" and grid[yy][xx].startswith("expedition_ship_"):
             underlays[grid[yy][xx]]=f"env_ocean_{xx%2+2*(yy%2)}"
         elif ch=="~":
-            land=lambda x,y: 0<=x<W and 0<=y<H and PLAN["rows"][y][x] not in "~D"
-            facing=next((direction for direction,x,y in (("north",xx,yy-1),("south",xx,yy+1),("east",xx+1,yy),("west",xx-1,yy)) if land(x,y)),None)
-            phase = (xx+yy)%2
             ocean = f"env_ocean_{xx%2+2*(yy%2)}"
-            if facing and yy >= 14 and xx < 15 and not (17 <= yy <= 22 and xx >= 10):
-                grid[yy][xx] = f"sea_cliff_{facing}_{phase}"
-            elif facing:
-                grid[yy][xx] = f"env_shore_{facing}" + ("_alt" if phase else "")
-            else:
-                grid[yy][xx] = ocean
+            grid[yy][xx] = shore_names.get((xx,yy),ocean)
 for name, x, y, phase in reef_sites:
     ART[name] = ART[f"sea_reef_{phase}"]
     module_slots[name] = 0
@@ -621,9 +598,13 @@ ruins_x, ruins_y = PLAN["landmarks"]["ruins_gate"]
 ART["ruins_trail_gate"] = ART["env_stairs_0_0"]
 module_slots["ruins_trail_gate"] = 0
 grid[ruins_y][ruins_x] = "ruins_trail_gate"
-for ox,oy in ((39,3),(39,11)):
-    assert all(PLAN["rows"][y][x]=="^" for y in range(oy,oy+4) for x in range(ox,ox+2))
-    env_stamp("env_waterfall",ox,oy,2,4)
+# Show one continuous cascade. The source pool and lower basin are
+# connected visually by a full drop over the rock face.
+for y in range(11,15):
+    for x in (39,40):
+        name = f"env_waterfall_{x-39}_{y-11}"
+        underlays[name] = grid[y][x]
+        grid[y][x] = name
 for ox in (24,31): env_stamp("env_banner",ox,11,1,2)
 
 # Compose overlapping tree crowns at native resolution, then compile their
@@ -663,16 +644,79 @@ for y, row in enumerate(PLAN["rows"]):
             underlays[name] = meadow(x, y)
         grid[y][x] = forest_parts[pixels]
 
+# Give the gathering area a recognizable footprint in the dirt apron.
+fire_x, fire_y = PLAN["landmarks"]["campfire"]
+for dy in (-1,0,1):
+    for dx in (-1,0,1):
+        x,y = fire_x+dx,fire_y+dy
+        base = grid[y][x]
+        if dx == dy == 0:
+            base = underlays["campfire_ring"]
+        apron = ART[base].copy()
+        draw = ImageDraw.Draw(apron)
+        for py in range(16):
+            for px in range(16):
+                rx,ry = dx*16+px-7.5,dy*16+py-8
+                d = rx*rx+ry*ry
+                if 16*16 <= d < 20*20:
+                    color = 5 if (px+2*py)%5 < 2 else 11
+                    if 18*18 <= d < 19*19:
+                        color = 8
+                    draw.point((px,py),fill=color)
+        name = f"campfire_apron_{dx+1}_{dy+1}"
+        ART[name] = apron
+        if dx == dy == 0:
+            underlays["campfire_ring"] = name
+        else:
+            grid[y][x] = name
+
+def paint_crates(draw):
+    for x,y,w,h in ((1,5,9,9),(8,8,7,7)):
+        draw.rectangle((x,y,x+w-1,y+h-1),fill=7,outline=6)
+        draw.line((x,y,x+w-1,y),fill=8)
+        draw.line((x+2,y+2,x+w-3,y+h-3),fill=5)
+
+def paint_bench(draw):
+    draw.rectangle((2,9,13,13),fill=6)
+    draw.rectangle((1,6,14,10),fill=7,outline=6)
+    draw.line((2,6,13,6),fill=8)
+    draw.point((3,12),fill=8)
+    draw.point((12,12),fill=8)
+
+def paint_plant(draw):
+    draw.ellipse((1,8,14,14),fill=1)
+    draw.ellipse((3,5,11,12),fill=9)
+    draw.ellipse((7,7,13,11),fill=2)
+    draw.line((5,8,8,5),fill=3)
+    draw.point((10,7),fill=14)
+    draw.point((5,6),fill=15)
+
+for prop,paint,sites in (
+    ("crate",paint_crates,((14,21),(15,21),(35,15),(36,15),(36,20))),
+    ("bench",paint_bench,((26,17),(30,17))),
+    ("plant",paint_plant,((15,13),(22,15),(30,14),(36,17),(38,18),(43,15),(31,23),(18,24),(26,26))),
+):
+    for x,y in sites:
+        assert (x,y) not in building_footprints, (prop,x,y,grid[y][x])
+        base = grid[y][x]
+        assert base not in underlays, (prop,x,y,base)
+        name = f"camp_{prop}_{x}_{y}"
+        tile(name,0,paint)
+        module_slots[name] = 6
+        underlays[name] = base
+        grid[y][x] = name
+
 # Index 0 is transparent in overlays. Border art uses the same packed
 # meadow cells as the map instead of foreign Littleroot metatile indices.
 border = [meadow(x,y) for y in range(2) for x in range(2)]
+sea_border = [f"env_ocean_{phase}" for phase in range(4)]
 map_art = {name for row in grid for name in row}
 underlays = {name: base for name, base in underlays.items() if name in map_art}
 covered = [name for name in underlays if not name.startswith("env_dense_forest_")]
 
 # Export only cells consumed by the actual map and its underlays. Retired
 # studies should not consume metatile IDs in the native game asset export.
-used_art = map_art | set(underlays.values()) | set(border)
+used_art = map_art | set(underlays.values()) | set(border) | set(sea_border)
 names=[name for name in ART if name in used_art]
 atlas=Image.new("P",(16*8,16*((len(names)+7)//8)),0)
 atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
@@ -684,7 +728,7 @@ atlas.save(OUT/"camp_original_metatiles_indexed.png")
     "metatiles": {name: [frame.tobytes().hex() for frame in frames]
                   for name, frames in water_frames.items() if name in used_art},
 })+"\n")
-(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"underlays":underlays,"covered":covered,"border":border,"forest_placements":forest_placements,"engine_integrated":False},indent=2)+"\n")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"underlays":underlays,"covered":covered,"border":border,"sea_border":sea_border,"forest_placements":forest_placements,"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
