@@ -34,10 +34,41 @@ def cells(layer):
 gids,collision=[cells(layer) for layer in root.findall('layer')[:2]]
 assert all(1<=gid<=len(names) for gid in gids)
 assert all(value in (0,1) for value in collision)
-used_ids=sorted({gid-1 for gid in gids})
+border_names = manifest["border"] + manifest["sea_border"]
+border_ids = [names.index(name) for name in border_names]
+used_ids = sorted({gid-1 for gid in gids} | set(border_ids))
+layer_shift = int(re.search(r"#define METATILE_ATTR_LAYER_SHIFT\s+(\d+)",
+                            (ROOT / "include/global.fieldmap.h").read_text()).group(1))
+covered_layer = 1 << layer_shift
+covered = set(manifest["covered"])
 blank=(0,)*64
 tiles=[[blank],[blank]]
 caches=[{blank:0},{blank:0}]
+# Animated graphics must occupy their own contiguous DMA range. Sharing
+# frame-zero pixels with a static tile would animate unrelated scenery.
+water = json.loads((ART/'water_animation.json').read_text())
+water_tile_ids = {}
+sequences = {}
+water_start = len(tiles[0])
+for name, frames in water['metatiles'].items():
+    images = [bytes.fromhex(frame) for frame in frames]
+    assert name in names and all(len(frame) == 256 for frame in images)
+    assert all(max(frame) < 16 for frame in images)
+    for slot,(sy,sx) in enumerate(((0,0),(0,8),(8,0),(8,8))):
+        indices = tuple((sy+y)*16+sx+x for y in range(8) for x in range(8))
+        sequence = tuple(tuple(frame[i] for i in indices) for frame in images)
+        if all(frame == sequence[0] for frame in sequence):
+            continue
+        if sequence not in sequences:
+            sequences[sequence] = len(tiles[0])
+            tiles[0].append(sequence[0])
+        water_tile_ids[name,slot] = sequences[sequence]
+assert sequences and len(tiles[0]) <= 512
+
+def pack_tile(pixels):
+    return bytes(pixels[i] | (pixels[i+1]<<4) for i in range(0,64,2))
+
+
 # Metatile IDs stay equal to atlas IDs within each bank. Neither reordering
 # pixel tiles nor deduplication changes which metatile contains a warp.
 metas=[[(6<<12)|base]*4096 for base in (0,512)]
@@ -49,31 +80,40 @@ for mid in used_ids:
     bank=0 if palette==6 or names[mid].startswith("env_") else 1
     base=bank*512
     map_ids[mid]=base+mid
-    mx=(mid%(atlas.width//16))*16
-    my=(mid//(atlas.width//16))*16
-    # Normal cells have one art layer. Ship cells keep true index-0
-    # transparency and put ocean pixels on the lower GBA background layer.
+    # Both layers of walkable deck cells must draw behind object sprites.
+    if names[mid] in covered:
+        attrs[bank][mid] = covered_layer
     underlay=manifest.get('underlays',{}).get(names[mid])
     sources=[(underlay,0),(names[mid],1)] if underlay else [(names[mid],0)]
     for source_name,layer in sources:
         source_mid=names.index(source_name)
         source_palette=slots.get(source_name,6)
-        source_bank=0 if source_palette==6 or source_name.startswith('env_') else 1
-        source_base=source_bank*512
+        preferred_bank = 0 if source_palette == 6 or source_name.startswith("env_") else 1
         source_mx=(source_mid%(atlas.width//16))*16
         source_my=(source_mid//(atlas.width//16))*16
         for slot,(sy,sx) in enumerate(((0,0),(0,8),(8,0),(8,8))):
             pixels=tuple(atlas.getpixel((source_mx+sx+x,source_my+sy+y)) for y in range(8) for x in range(8))
             assert all(0<=c<16 for c in pixels)
+            animated_id = water_tile_ids.get((source_name,slot))
+            if animated_id is not None:
+                assert pixels == tiles[0][animated_id]
+                metas[bank][mid*8+layer*4+slot] = (source_palette<<12) | animated_id
+                continue
+            # A metatile may reference either graphics bank. Reuse existing
+            # pixels before allocating into the preferred bank or its spare.
+            source_bank = preferred_bank
+            alternate = 1 - preferred_bank
+            if pixels not in caches[source_bank] and (pixels in caches[alternate] or len(tiles[source_bank]) == 512):
+                source_bank = alternate
             if pixels not in caches[source_bank]:
                 index=len(tiles[source_bank])
-                assert index<512, f'Bank {source_bank} exceeds 512 tiles'
+                assert index < 512, f"Combined 1024-tile graphics budget exceeded at {source_name}"
                 tiles[source_bank].append(pixels)
                 for flip_y in (False,True):
                     for flip_x in (False,True):
                         oriented=tuple(pixels[(7-y if flip_y else y)*8+(7-x if flip_x else x)] for y in range(8) for x in range(8))
                         caches[source_bank].setdefault(oriented,index|(0x400 if flip_x else 0)|(0x800 if flip_y else 0))
-            metas[bank][mid*8+layer*4+slot]=(source_palette<<12)|source_base|caches[source_bank][pixels]
+            metas[bank][mid*8+layer*4+slot]=(source_palette<<12)|(source_bank*512)|caches[source_bank][pixels]
 packed_banks=[]
 for bank,dest in enumerate(DESTS):
     dest.mkdir(parents=True,exist_ok=True)
@@ -82,7 +122,7 @@ for bank,dest in enumerate(DESTS):
     packed=bytearray()
     for index in range(512):
         pixels=tiles[bank][index] if index<len(tiles[bank]) else blank
-        packed.extend(pixels[i]|(pixels[i+1]<<4) for i in range(0,64,2))
+        packed.extend(pack_tile(pixels))
         for y in range(8):
             for x in range(8): sheet.putpixel(((index%16)*8+x,(index//16)*8+y),pixels[y*8+x])
     assert len(packed)==16384 and packed[:32]==bytes(32)
@@ -90,6 +130,20 @@ for bank,dest in enumerate(DESTS):
     sheet.save(dest/'tiles.png')
     (dest/'tiles.4bpp').write_bytes(packed)
     (dest/'metatiles.bin').write_bytes(struct.pack('<4096H',*metas[bank]))
+water_count = len(sequences)
+water_steps = len(next(iter(sequences)))
+assert all(len(sequence) == water_steps for sequence in sequences)
+water_frames = [b"".join(pack_tile(sequence[step]) for sequence in sequences)
+                for step in range(water_steps)]
+assert all(water_frames[i] != water_frames[(i+1)%water_steps] for i in range(water_steps))
+assert water_frames[0] == packed_banks[0][water_start*32:(water_start+water_count)*32]
+(DESTS[0]/'water_frames.bin').write_bytes(b''.join(water_frames))
+water_report = {
+    "start_tile":water_start, "tile_count":water_count, "frame_count":water_steps,
+    "frames_per_step":water["frames_per_step"], "animated_metatiles":sorted({name for name,_ in water_tile_ids}),
+}
+(DESTS[0]/'water_animation.json').write_text(json.dumps(water_report,indent=2)+'\n')
+
 # Decode every visible layer reference, including flips, to source pixels.
 for mid in used_ids:
     bank=map_ids[mid]//512
@@ -112,11 +166,11 @@ for mid in used_ids:
             assert decoded==expected,(mid,layer,slot)
 plan=json.loads((ROOT/'data/meridian_plans/landing_camp_arrival.json').read_text())
 behaviors=re.findall(r'\bMB_[A-Z0-9_]+\b',(ROOT/'include/constants/metatile_behaviors.h').read_text().split('};',1)[0])
-for key in ('medical_door','research_door','hq_door','supply_door','quarters_door'):
+for key in ('medical_door','research_door','hq_door','supply_door','quarters_door','ship_boarding','provision_door','ruins_gate'):
     x,y=plan['landmarks'][key]
     assert collision[y*w+x]==0,('Blocked entrance',key)
     mid=gids[y*w+x]-1
-    attrs[map_ids[mid]//512][mid]=behaviors.index('MB_NON_ANIMATED_DOOR')
+    attrs[map_ids[mid]//512][mid]|=behaviors.index('MB_NON_ANIMATED_DOOR')
 for bank,dest in enumerate(DESTS):
     (dest/'metatile_attributes.bin').write_bytes(struct.pack('<512H',*attrs[bank]))
 # Primary palette slots are private to the camp, with valid defaults for
@@ -136,15 +190,47 @@ for slot,palette in manifest.get('palettes',{'6':manifest['palette']}).items():
     dest.parent.mkdir(parents=True,exist_ok=True)
     dest.write_text('JASC-PAL\n0100\n16\n'+''.join(f'{r} {g} {b}\n' for r,g,b in palette))
 words=[map_ids[gid-1]|(0xC00 if blocked else 0)|0x3000 for gid,blocked in zip(gids,collision)]
-(ROOT/'data/layouts/MeridianLandingCampPrototype/map.bin').write_bytes(struct.pack('<1920H',*words))
+camp_layout = ROOT / 'data/layouts/MeridianLandingCampPrototype'
+(camp_layout / 'map.bin').write_bytes(struct.pack('<1920H', *words))
+(camp_layout / 'border.bin').write_bytes(struct.pack(f'<{len(border_ids)}H', *(map_ids[mid] for mid in border_ids)))
 # Register a private primary bank: General is shared by the rest of Emerald
 # and must never be overwritten to make room for camp art.
 symbol='MeridianCampEnvironment'
 base='data/tilesets/primary/meridian_camp_environment/'
+water_bytes = water_count*32
+(DESTS[0]/'water_animation.h').write_text(f'''// Generated by integrate_meridian_original_camp_art.py.
+static const u16 ALIGNED(4) sMeridianWaterFrames[] = INCBIN_U16("{base}water_frames.bin");
+
+static void TilesetAnim_MeridianWater(u16 timer)
+{{
+    if (timer % {water["frames_per_step"]} == 0)
+    {{
+        u16 frame = timer / {water["frames_per_step"]};
+        AppendTilesetAnimToBuffer(sMeridianWaterFrames + frame * ({water_bytes} / sizeof(u16)),
+                                  (u16 *)(BG_VRAM + TILE_OFFSET_4BPP({water_start})), {water_bytes});
+    }}
+}}
+
+void InitTilesetAnim_MeridianWater(void)
+{{
+    sPrimaryTilesetAnimCounter = 0;
+    sPrimaryTilesetAnimCounterMax = {water_steps*water["frames_per_step"]};
+    sPrimaryTilesetAnimCallback = TilesetAnim_MeridianWater;
+}}
+''')
+anim_source = ROOT/'src/tileset_anims.c'
+anim_include = '#include "../'+base+'water_animation.h"'
+source = anim_source.read_text()
+if anim_include not in source:
+    anchor = 'void InitTilesetAnim_General(void)'
+    assert source.count(anchor) == 1
+    anim_source.write_text(source.replace(anchor,anim_include+'\n\n'+anchor,1))
 registrations={
     'src/data/tilesets/graphics.h':f'const u32 gTilesetTiles_{symbol}[] = INCGFX_U32("{base}tiles.png", ".4bpp.fastSmol", "-num_tiles 512 -Wnum_tiles");\n' + f'const u16 ALIGNED(4) gTilesetPalettes_{symbol}[][16] =\n{{\n' + ''.join(f'    INCGFX_U16("{base}palettes/{i:02d}.pal", ".gbapal"),\n' for i in range(6)) + '};\n',
     'src/data/tilesets/metatiles.h':f'const u16 gMetatiles_{symbol}[] = INCBIN_U16("{base}metatiles.bin");\nconst u16 gMetatileAttributes_{symbol}[] = INCBIN_U16("{base}metatile_attributes.bin");\n',
-    'src/data/tilesets/headers.h':f'''const struct Tileset gTileset_{symbol} =
+    'src/data/tilesets/headers.h':f'''void InitTilesetAnim_MeridianWater(void);
+
+const struct Tileset gTileset_{symbol} =
 {{
     .isCompressed = TRUE,
     .isSecondary = FALSE,
@@ -152,7 +238,7 @@ registrations={
     .palettes = gTilesetPalettes_{symbol},
     .metatiles = gMetatiles_{symbol},
     .metatileAttributes = gMetatileAttributes_{symbol},
-    .callback = NULL,
+    .callback = InitTilesetAnim_MeridianWater,
 }};
 ''',
 }
@@ -168,6 +254,29 @@ source=target.read_text()
 declaration=f'extern const struct Tileset gTileset_{symbol};'
 if declaration not in source:
     target.write_text(source.replace('extern const struct Tileset gTileset_General;',f'extern const struct Tileset gTileset_General;\n{declaration}',1))
+# The sea meets the west and southwest edges of Landing Camp. Keep those
+# padded camera cells animated and impassable instead of wrapping meadow.
+fieldmap = ROOT/'src/fieldmap.c'
+source = fieldmap.read_text()
+if '#include "tilesets.h"' not in source:
+    source = source.replace('#include "fieldmap.h"','#include "fieldmap.h"\n#include "tilesets.h"',1)
+if 'mapLayout->primaryTileset == &gTileset_MeridianCampEnvironment' not in source:
+    anchor = '    int i = (x + 1) & 1;'
+    assert source.count(anchor) == 1
+    shore_y = next(i for i,row in enumerate(plan['rows']) if row[0] == '~')
+    shore_x = plan['rows'][-1].index(next(ch for ch in plan['rows'][-1] if ch != '~'))
+    guard = f"""    if (mapLayout->primaryTileset == &gTileset_MeridianCampEnvironment
+     && ((x < MAP_OFFSET && y >= MAP_OFFSET + {shore_y})
+      || (y >= MAP_OFFSET + mapLayout->height && x < MAP_OFFSET + {shore_x})))
+    {{
+        int phase = ((x - MAP_OFFSET) & 1) + 2 * ((y - MAP_OFFSET) & 1);
+        return mapLayout->border[4 + phase] | MAPGRID_IMPASSABLE;
+    }}
+
+"""
+    source = source.replace(anchor,guard+anchor,1)
+fieldmap.write_text(source)
+
 target=ROOT/'data/layouts/layouts.json'
 layouts=json.loads(target.read_text())
 layout=next(v for v in layouts['layouts'] if v['id']=='LAYOUT_MERIDIAN_LANDING_CAMP_PROTOTYPE')
@@ -176,7 +285,7 @@ target.write_text(json.dumps(layouts,indent=2)+'\n')
 report={'status':'assets_integrated_into_real_engine_map_inputs','map_size':[w,h],
         'authored_metatiles':len(names),'unique_primary_8x8_tiles':len(tiles[0]),
         'unique_secondary_8x8_tiles':len(tiles[1]),'packed_4bpp_bytes':sum(map(len,packed_banks)),
-        'packed_tile_roundtrip':'passed','map_unique_metatile_ids':len(set(words)),
+        'water_animation':water_report,'packed_tile_roundtrip':'passed','map_unique_metatile_ids':len({word & 1023 for word in words}),
         'collision_blocked':sum(collision),'primary_tileset':f'gTileset_{symbol}',
         'secondary_tileset':'gTileset_MeridianShadyForest',
         'note':'Requires compilation and emulator verification; visual approval remains separate'}

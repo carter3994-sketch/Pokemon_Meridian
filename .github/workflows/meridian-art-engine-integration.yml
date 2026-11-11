@@ -1,6 +1,16 @@
 name: Meridian Original Art Engine Integration
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'graphics/meridian/landing_camp/**'
+      - 'scripts/build_meridian_camp_graphics.py'
+      - 'scripts/meridian_camp_terrain.py'
+      - 'scripts/meridian_water_animation.py'
+      - 'scripts/meridian_camp_rooms.py'
+      - 'scripts/register_landing_camp_prototype.py'
+      - '.github/workflows/meridian-art-engine-integration.yml'
   push:
     branches: [develop]
     paths:
@@ -12,6 +22,10 @@ on:
       - 'scripts/validate_meridian_camp_engine_assets.py'
       - 'scripts/integrate_meridian_original_camp_art.py'
       - 'scripts/build_meridian_camp_graphics.py'
+      - 'scripts/meridian_camp_terrain.py'
+      - 'scripts/meridian_water_animation.py'
+      - 'scripts/meridian_camp_rooms.py'
+      - 'scripts/register_landing_camp_prototype.py'
       - 'scripts/render_meridian_actual_engine_map.py'
       - '.github/workflows/meridian-art-engine-integration.yml'
 permissions:
@@ -92,7 +106,8 @@ jobs:
           path: |
             data/tilesets/primary/meridian_camp_environment/
             data/tilesets/secondary/meridian_shady_forest/
-            data/layouts/MeridianLandingCampPrototype/
+            data/tilesets/secondary/meridian_expedition_rooms/
+            data/layouts/MeridianLandingCamp*/
             data/maps/MeridianLandingCamp*/
             build/meridian_candidate_review/original_art_engine_integration.json
             build/meridian_candidate_review/engine_asset_validation.json
@@ -129,10 +144,49 @@ jobs:
           PY
       - name: Smoke test emulator startup to first VBlank
         run: timeout 30s tools/mgba/mgba-rom-test -S 5 pokeemerald.gba
-      - name: Upload ROM only after all graphics gates and compilation pass
+      - name: Package the verified ROM for download
+        run: |
+          mkdir -p build/camp-rom
+          sha256sum pokeemerald.gba > build/camp-rom/pokeemerald.gba.sha256
+          xz -T2 -6 -c pokeemerald.gba > build/camp-rom/pokeemerald.gba.xz
+          split -n 4 -d build/camp-rom/pokeemerald.gba.xz build/camp-rom/part-
+      - name: Upload ROM part 1 of 4
         uses: actions/upload-artifact@v4
         with:
-          name: meridian-original-art-experimental-landing-camp-rom
-          path: pokeemerald.gba
+          name: meridian-landing-camp-rom-part-00
+          path: |
+            build/camp-rom/part-00
+            build/camp-rom/pokeemerald.gba.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload ROM part 2 of 4
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-rom-part-01
+          path: |
+            build/camp-rom/part-01
+            build/camp-rom/pokeemerald.gba.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload ROM part 3 of 4
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-rom-part-02
+          path: |
+            build/camp-rom/part-02
+            build/camp-rom/pokeemerald.gba.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload ROM part 4 of 4
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-rom-part-03
+          path: |
+            build/camp-rom/part-03
+            build/camp-rom/pokeemerald.gba.sha256
+          compression-level: 0
           if-no-files-found: error
           retention-days: 7

@@ -1,0 +1,31 @@
+# Landing Camp art progress
+
+## Terrain detail pass · 2026-11-10
+
+The ground atlas adapts the approved **Expedition Landing Camp – Aevor** meadow swatch and the packed earth in the main courtyard. The first two 32 × 32 panels contain the dense meadow and its shorter grass variant. The last panel contains the dirt material. All three share the camp's 16-color material palette. No reference-project graphics were imported.
+
+Reference review covered the actual primary tile graphics, palettes and metatile data from [Pokémon Emerald](https://github.com/pret/pokeemerald/tree/master/data/tilesets/primary/general), [FireRed](https://github.com/pret/pokefirered/tree/master/data/tilesets/primary/general), [Modern Emerald ORAS](https://github.com/lbsbezerra/pokeemerald-modern-oras/tree/master/data/tilesets/primary/general), and [Wishes of Tomorrow Route 224](https://github.com/jmaloney95/Wishes-Game/tree/master/data/tilesets/primary/route_224). The shared approach is to reuse ground art, use distinct edge and corner pieces, and compose foliage over a separate ground layer. [Tiled's terrain documentation](https://github.com/mapeditor/tiled/blob/master/docs/manual/terrain.rst) describes how edge and corner terrain matching fit together.
+
+Meridian now uses rounded outer corners, recessed inner corners, and a grass rim with darker exposed soil. The campfire sits over the trail material and transparent trees sit over the meadow. The terrain stays cosmetic and the collision grid remains identical to playtest `49136383`.
+
+The draft [Landing Camp PR](https://github.com/carter3994-sketch/Pokemon_Meridian/pull/10) records the build and emulator evidence. Final cliffside waterfront art and permanent interiors remain open.
+
+## Waterfront, approach, and interiors
+
+The southwest shoreline now has rock faces over the foamy waterline, two coves, offshore rocks and pier fittings. The cave approach is exterior-only. A plunge pool below the waterfall, a two-tile stair and a wider upper terrace frame the existing mouth.
+
+The camp shrine has moved to a separate 24 × 20 wooded ruins map with a paved forecourt, fragmented pillars and rear court. The camp trail branches north to the ruins and has a paired return warp. The former shrine site is meadow and forest.
+
+Six custom room layouts now have a dedicated expedition tileset and paired doors. Headquarters has a briefing station, research has capsule equipment, medical and quarters have beds, and the two supply rooms have separate shelving and counters. Provision uses the existing storefront door. These rooms are staged for the playtest and retain room for story, interactions and polish.
+
+## Water animation
+
+The ocean swatch now has moving wavelets. The shore and reef foam shift with the swell, and bands of light move down the falls and out through the splash. The water beneath the ship, dock edges and gangway is part of the same animation.
+
+The art exporter produces eight frames. The native compiler reserves a contiguous range in the camp's primary tile bank, keeps static art out of that range, and queues a single transfer through Emerald's tileset animation system every eight display frames. Collision and elevation were compared with `10277be9` across all 1,920 camp cells. Runtime evidence is in PR #10.
+
+## Camp composition and water readability
+
+Replaced the speckled ocean with a clean blue ramp, directional swells, and a few brighter crests. Wet edges now consider cardinal and diagonal neighbors, so foam wraps the coves and pools. The harbor camera border continues the ocean instead of repeating meadow outside the map.
+
+The cliffside now has a wooded crest, a source pool, one continuous drop over the actual cliff face, and a plunge basin. The camp paths form a continuous apron from the dock, and the fire circle, benches, supply crates, and low plants give the middle of camp a visible gathering area. Existing entrance coordinates and the approved building silhouettes are retained. The additional obstacles and water use explicit collision and retain walkable routes to every entrance.

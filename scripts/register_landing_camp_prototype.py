@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Install the experimental Landing Camp into a disposable checkout for CI.
 
-Never run this on the production branch without review: it adds a debug map
-with temporary tiles, no events and no player entry point.
+This adds a debug New Game entry and registers the paired camp interiors.
+Run in a disposable build checkout so the stock game entry stays intact.
 """
 import json
 from pathlib import Path
 import shutil
+
+from meridian_camp_rooms import build_camp_rooms
 
 root = Path(__file__).resolve().parents[1]
 stage = root / "build/meridian_prototypes"
@@ -78,25 +80,27 @@ for x, y, gfx, script in (
         "trainer_sight_or_berry_tree_id": "0",
         "script": script, "flag": "0",
     })
-# Create five traversable, reversible camp building interiors. Reuse existing
-# engine-compatible indoor layouts as temporary art until custom assets land.
-# Each outside door and its indoor exit are paired by a stable warp index.
+# Reversible warps from each exterior to the new room or separate ruins map.
+room_layouts = build_camp_rooms(root)
 interiors = (
-    ("Medical", "medical_door", "LittlerootTown_ProfessorBirchsLab", (6, 12), (7, 12)),
-    ("Research", "research_door", "LittlerootTown_ProfessorBirchsLab", (6, 12), (7, 12)),
-    ("Headquarters", "hq_door", "LittlerootTown_BrendansHouse_1F", (9, 8), (8, 8)),
-    ("Supply", "supply_door", "LittlerootTown_BrendansHouse_1F", (9, 8), (8, 8)),
-    ("Quarters", "quarters_door", "LittlerootTown_BrendansHouse_1F", (9, 8), (8, 8)),
+    ("Medical", "medical_door", "LittlerootTown_ProfessorBirchsLab"),
+    ("Research", "research_door", "LittlerootTown_ProfessorBirchsLab"),
+    ("Headquarters", "hq_door", "LittlerootTown_BrendansHouse_1F"),
+    ("Supply", "supply_door", "LittlerootTown_BrendansHouse_1F"),
+    ("Quarters", "quarters_door", "LittlerootTown_BrendansHouse_1F"),
+    ("Vessel", "ship_boarding", "SSTidalCorridor"),
+    ("Provision", "provision_door", "LittlerootTown_BrendansHouse_1F"),
+    ("Ruins", "ruins_gate", area["name"]),
 )
 landmarks = json.loads((root / "data/meridian_plans/landing_camp_arrival.json").read_text())["landmarks"]
-for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interiors):
+for warp_id, (label, landmark, source_name) in enumerate(interiors):
     x, y = landmarks[landmark]
     if mask["rows"][y][x] != "0":
         raise SystemExit(f"Blocked entrance for {label}")
     interior_name = "MeridianLandingCamp" + label
     interior_id = "MAP_MERIDIAN_LANDING_CAMP_" + label.upper()
     layout_id = "LAYOUT_MERIDIAN_LANDING_CAMP_" + label.upper()
-    source_map = json.loads((maps / source_name / "map.json").read_text())
+    source_map = area if label == "Ruins" else json.loads((maps / source_name / "map.json").read_text())
     source_layout = next(
         entry for entry in registry["layouts"]
         if entry["id"] == source_map["layout"]
@@ -111,9 +115,15 @@ for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interio
         "border_filepath": f"data/layouts/{interior_name}/border.bin",
     })
     interior_layout_dir = layouts / interior_name
-    interior_layout_dir.mkdir(parents=True, exist_ok=False)
-    shutil.copyfile(source_block, interior_layout_dir / "map.bin")
-    shutil.copyfile(source_border, interior_layout_dir / "border.bin")
+    if label in room_layouts:
+        width,height,exits = room_layouts[label]
+        interior_layout.update(width=width,height=height,primary_tileset="gTileset_General",
+                               secondary_tileset="gTileset_MeridianExpeditionRooms")
+    else:
+        exits = ((16,2),)
+        interior_layout_dir.mkdir(parents=True, exist_ok=False)
+        shutil.copyfile(source_block, interior_layout_dir / "map.bin")
+        shutil.copyfile(source_border, interior_layout_dir / "border.bin")
     registry["layouts"].append(interior_layout)
     indoor = dict(source_map)
     indoor.update({
@@ -124,7 +134,7 @@ for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interio
         "warp_events": [
             {"x": ix, "y": iy, "elevation": 0,
              "dest_map": area["id"], "dest_warp_id": str(warp_id)}
-            for ix, iy in (exit_a, exit_b)
+            for ix, iy in exits
         ],
         "coord_events": [],
         "bg_events": [],
@@ -148,8 +158,9 @@ for warp_id, (label, landmark, source_name, exit_a, exit_b) in enumerate(interio
 (layouts_path).write_text(json.dumps(registry, indent=2) + "\n")
 # Validate both directions of every building warp before attempting a ROM build.
 if len(area["warp_events"]) != len(interiors):
-    raise SystemExit("Expected five paired building entrances")
-for index, (label, landmark, _, exit_a, exit_b) in enumerate(interiors):
+    raise SystemExit("Missing Landing Camp destination warp")
+for index, (label, landmark, _) in enumerate(interiors):
+    exits = room_layouts[label][2] if label in room_layouts else ((16,2),)
     x, y = landmarks[landmark]
     outdoor = area["warp_events"][index]
     indoor_name = "MeridianLandingCamp" + label
@@ -158,9 +169,9 @@ for index, (label, landmark, _, exit_a, exit_b) in enumerate(interiors):
         raise SystemExit(f"{label}: exterior entrance moved")
     if outdoor["dest_map"] != indoor["id"] or outdoor["dest_warp_id"] != "0":
         raise SystemExit(f"{label}: exterior warp target mismatch")
-    if len(indoor["warp_events"]) != 2:
-        raise SystemExit(f"{label}: expected two exit tiles")
-    if {(w["x"], w["y"]) for w in indoor["warp_events"]} != {exit_a, exit_b}:
+    if len(indoor["warp_events"]) != len(exits):
+        raise SystemExit(f"{label}: wrong exit tile count")
+    if {(w["x"], w["y"]) for w in indoor["warp_events"]} != set(exits):
         raise SystemExit(f"{label}: interior exit coordinates mismatch")
     if any(w["dest_map"] != area["id"] or w["dest_warp_id"] != str(index)
            for w in indoor["warp_events"]):
@@ -169,7 +180,7 @@ for index, (label, landmark, _, exit_a, exit_b) in enumerate(interiors):
     for w in indoor["warp_events"]:
         if not (0 <= w["x"] < indoor_layout["width"] and 0 <= w["y"] < indoor_layout["height"]):
             raise SystemExit(f"{label}: exit outside interior layout")
-print("Verified five bidirectional building warps and interior exit bounds")
+print("Verified paired building, vessel and ruins warps and destination exit bounds")
 (map_dir / "map.json").write_text(json.dumps(area, indent=2) + "\n")
 (map_dir / "scripts.inc").write_text("""MeridianLandingCampPrototype_MapScripts::
     .byte 0
