@@ -507,6 +507,48 @@ for direction in ("north","south","east","west"):
     name=f"env_shore_{direction}"
     ART[name+"_alt"]=ART[name].transpose(Image.Transpose.FLIP_LEFT_RIGHT if direction in ("north","south") else Image.Transpose.FLIP_TOP_BOTTOM)
     module_slots[name+"_alt"]=1
+def dock_deck(name, phase, west, north, south):
+    """Draw walkable decking with a short fascia above the water."""
+    left = 3 if west else 0
+    top = 2 if north else 0
+    bottom = 11 if south else 15
+
+    def paint(draw):
+        draw.rectangle((left, top, 15, bottom), fill=7)
+        for y in range(top, bottom + 1, 4):
+            draw.line((left, y, 15, y), fill=8)
+            if y + 3 <= bottom:
+                draw.line((left, y + 3, 15, y + 3), fill=6)
+            seam = 4 + (phase * 5 + y * 2) % 10
+            if y + 2 <= bottom:
+                draw.line((seam, y + 1, seam, y + 2), fill=6)
+        if south:
+            draw.rectangle((left, 12, 15, 13), fill=6)
+            if west or phase == 0:
+                post = left + 2
+                draw.rectangle((post, 9, post + 2, 15), fill=6)
+                draw.line((post, 9, post + 1, 9), fill=5)
+        if west:
+            draw.line((left, top, left, bottom), fill=6)
+            draw.line((left + 1, top, left + 1, bottom), fill=8)
+
+    tile(name, 0, paint)
+
+
+def paint_campfire(draw):
+    draw.ellipse((1, 7, 14, 15), fill=6)
+    draw.ellipse((3, 8, 12, 13), fill=12)
+    for x, y in ((2, 10), (4, 8), (11, 8), (12, 11), (10, 13), (5, 13)):
+        draw.rectangle((x, y, x + 1, y + 1), fill=13)
+        draw.point((x, y), fill=5)
+    draw.line((5, 11, 10, 8), fill=7, width=2)
+    draw.line((5, 9, 10, 12), fill=8, width=2)
+    draw.polygon(((6, 11), (5, 6), (7, 7), (9, 1), (9, 6), (11, 5), (10, 11)), fill=8)
+    draw.polygon(((7, 11), (7, 8), (9, 5), (9, 9), (10, 10), (9, 11)), fill=5)
+    draw.point((7, 3), fill=8)
+
+
+tile("campfire_ring", 4, paint_campfire)
 underlays={}
 for yy,row in enumerate(PLAN["rows"]):
     for xx,ch in enumerate(row):
@@ -516,6 +558,21 @@ for yy,row in enumerate(PLAN["rows"]):
         elif ch=="R":
             phase=(xx+2*yy)%5
             grid[yy][xx]="grass" if phase==0 else f"grass_material_{phase}"
+        elif ch=="D":
+            west = xx == 0 or row[xx - 1] != "D"
+            north = yy == 0 or PLAN["rows"][yy - 1][xx] != "D"
+            south = yy + 1 == H or PLAN["rows"][yy + 1][xx] != "D"
+            phase = (xx + 2 * yy) % 3
+            ocean_phase = xx % 2 + 2 * (yy % 2)
+            name = f"dock_deck_{phase}_{int(west)}{int(north)}{int(south)}"
+            if west or north or south:
+                name += f"_{ocean_phase}"
+                underlays[name] = f"env_ocean_{ocean_phase}"
+            if name not in ART:
+                dock_deck(name, phase, west, north, south)
+            grid[yy][xx] = name
+        elif ch=="F":
+            grid[yy][xx] = "campfire_ring"
         elif ch=="~" and grid[yy][xx].startswith("expedition_ship_"):
             underlays[grid[yy][xx]]=f"env_ocean_{xx%2+2*(yy%2)}"
         elif ch=="~":
@@ -623,6 +680,8 @@ for qy,row in enumerate(("1111","1001","1001","0000")):
     for qx,value in enumerate(row): collision["rows"][qy][29+qx]=value
 for yy in (12,13): collision["rows"][yy][41]="0"
 cx,cy=PLAN["landmarks"]["cave_entrance"];collision["rows"][cy][cx]="0"
+fire_x, fire_y = PLAN["landmarks"]["campfire"]
+collision["rows"][fire_y][fire_x] = "1"
 assert PLAN["landmarks"]["hq_door"]==[28,10]
 tmx = ET.Element("map", {
     "version":"1.10","tiledversion":"1.11.2","orientation":"orthogonal",

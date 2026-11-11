@@ -51,8 +51,8 @@ for mid in used_ids:
     map_ids[mid]=base+mid
     mx=(mid%(atlas.width//16))*16
     my=(mid//(atlas.width//16))*16
-    # Normal cells have one art layer. Ship cells keep true index-0
-    # transparency and put ocean pixels on the lower GBA background layer.
+    # Ship and dock edge cells keep index-0 transparency and put ocean
+    # pixels on the lower GBA background layer.
     underlay=manifest.get('underlays',{}).get(names[mid])
     sources=[(underlay,0),(names[mid],1)] if underlay else [(names[mid],0)]
     for source_name,layer in sources:

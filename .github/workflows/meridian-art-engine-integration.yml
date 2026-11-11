@@ -1,6 +1,12 @@
 name: Meridian Original Art Engine Integration
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'graphics/meridian/landing_camp/**'
+      - 'scripts/build_meridian_camp_graphics.py'
+      - '.github/workflows/meridian-art-engine-integration.yml'
   push:
     branches: [develop]
     paths:

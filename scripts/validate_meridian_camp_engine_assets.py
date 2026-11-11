@@ -53,6 +53,12 @@ while queue:
             reachable.add((nx, ny))
             queue.append((nx, ny))
 
+dock = {(x, y) for y, row in enumerate(plan["rows"]) for x, cell in enumerate(row) if cell == "D"}
+assert dock and dock <= reachable, "The dock must be walkable from arrival"
+fire_x, fire_y = plan["landmarks"]["campfire"]
+assert not walkable(fire_x, fire_y), "The fire ring must block movement"
+assert (fire_x, fire_y + 1) in reachable, "The campfire must be approachable"
+
 enum_source = (ROOT / "include/constants/metatile_behaviors.h").read_text().split("};", 1)[0]
 door_behavior = re.findall(r"\bMB_[A-Z0-9_]+\b", enum_source).index("MB_NON_ANIMATED_DOOR")
 area = json.loads((ROOT / "data/maps/MeridianLandingCampPrototype/map.json").read_text())
@@ -74,7 +80,8 @@ for landmark in ("medical_door", "research_door", "hq_door", "supply_door", "qua
     assert 0 <= int(warp["dest_warp_id"]) < len(indoor["warp_events"])
     assert all(v["dest_map"] == area["id"] and int(v["dest_warp_id"]) == warp_id for v in indoor["warp_events"]), landmark
     checked.append(landmark)
-report = {"checked_entrances": checked, "reachable_cells": len(reachable), "packed_bank_bytes": len(raw), "pass": True,
+report = {"checked_entrances": checked, "reachable_dock_cells": len(dock),
+          "blocked_campfire": [fire_x, fire_y], "reachable_cells": len(reachable), "packed_bank_bytes": len(raw), "pass": True,
           "scope": "Static map, VRAM references, reachable door behavior and paired return warps; gameplay not tested"}
 out = ROOT / "build/meridian_candidate_review/engine_asset_validation.json"
 out.parent.mkdir(parents=True, exist_ok=True)
