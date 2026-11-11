@@ -1,7 +1,10 @@
 # Chapter 1 — The Last Shore (Narrative treatment)
-**Status: DRAFT — not approved for production implementation.**  
+**Status: SUPERSEDED WORKING DRAFT — full rewrite requested by owner; NOT approved for production implementation.**  
 **Creative team:** ChatGPT Project  
 **Updated:** 2026-11-10
+
+> **OWNER DIRECTION (2026-11-10):** The owner approved a six-point high-level structural framework but explicitly requested that **the entirety of this narrative treatment be revised** after they provide new instructions. The text below is retained **only as historical creative reference**; do not implement its events or dialogue as final. See `docs/coordination/CREATIVE_DECISIONS.md` and `CREATIVE_REQUESTS.md` for authoritative approval boundaries.
+
 
 ## Emotional arc
 Desperation at sea → first glimpse of an impossibly beautiful but unsettling homeland → battered survival at Landing Camp → first fragile human/Pokémon partnerships → realization that this land is inhabited and not theirs to name → signs of a larger ancient threat.
