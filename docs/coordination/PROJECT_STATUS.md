@@ -24,6 +24,8 @@ Landing Camp production and Chapter 1 engineering are in progress. The camp has 
 
 ## Pending dependencies and decisions
 
+- The owner approved the building placement shown in the `f5815a20` render. The waterfront, ruins, permanent interiors and final map appearance still need visual review. See the [approval register](../AREA_APPROVAL_REGISTER.md).
+
 - The current ROM reaches the outdoor map through the build-time registration script. The ship, storm, blackout, and medical-facility wake-up need authored maps and story events.
 - Chapter 1 has owner-approved story beats. Final dialogue, cutscene staging, and the exact Guardian encounter designs need a creative handoff. Track specifics in [creative requests](CREATIVE_REQUESTS.md).
 - The current build covers five building round trips. Save/load across story flags, alternative character setup paths, and the complete opening remain unverified.
