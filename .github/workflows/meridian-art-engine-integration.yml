@@ -144,10 +144,49 @@ jobs:
           PY
       - name: Smoke test emulator startup to first VBlank
         run: timeout 30s tools/mgba/mgba-rom-test -S 5 pokeemerald.gba
-      - name: Upload ROM only after all graphics gates and compilation pass
+      - name: Package the verified ROM for download
+        run: |
+          mkdir -p build/camp-rom
+          sha256sum pokeemerald.gba > build/camp-rom/pokeemerald.gba.sha256
+          xz -T2 -6 -c pokeemerald.gba > build/camp-rom/pokeemerald.gba.xz
+          split -n 4 -d build/camp-rom/pokeemerald.gba.xz build/camp-rom/part-
+      - name: Upload ROM part 1 of 4
         uses: actions/upload-artifact@v4
         with:
-          name: meridian-original-art-experimental-landing-camp-rom
-          path: pokeemerald.gba
+          name: meridian-landing-camp-rom-part-00
+          path: |
+            build/camp-rom/part-00
+            build/camp-rom/pokeemerald.gba.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload ROM part 2 of 4
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-rom-part-01
+          path: |
+            build/camp-rom/part-01
+            build/camp-rom/pokeemerald.gba.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload ROM part 3 of 4
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-rom-part-02
+          path: |
+            build/camp-rom/part-02
+            build/camp-rom/pokeemerald.gba.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload ROM part 4 of 4
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-landing-camp-rom-part-03
+          path: |
+            build/camp-rom/part-03
+            build/camp-rom/pokeemerald.gba.sha256
+          compression-level: 0
           if-no-files-found: error
           retention-days: 7
