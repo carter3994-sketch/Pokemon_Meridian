@@ -1,9 +1,23 @@
 name: Meridian Landing Camp Town Design
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [develop]
+    paths:
+      - '.github/workflows/meridian-town-design.yml'
+      - 'docs/LANDING_CAMP_GRID_48x40_V03.md'
+      - 'data/meridian_plans/landing_camp_*.json'
+      - 'graphics/meridian/landing_camp/**'
+      - 'scripts/*landing_camp*.py'
+      - 'scripts/*meridian*camp*.py'
   push:
     branches: [develop]
     paths:
+      - 'docs/LANDING_CAMP_GRID_48x40_V03.md'
+      - 'graphics/meridian/landing_camp/**'
+      - 'scripts/build_meridian_camp_graphics.py'
+      - 'scripts/integrate_meridian_original_camp_art.py'
+      - 'scripts/validate_meridian_camp_engine_assets.py'
       - 'data/meridian_plans/landing_camp_arrival.json'
       - 'data/meridian_plans/landing_camp_collision_draft.json'
       - 'scripts/generate_landing_camp_metatile_prototype.py'
@@ -26,14 +40,18 @@ jobs:
       - name: Validate town layout and access
         run: |
           python3 scripts/validate_landing_camp_grid.py
+          python3 scripts/export_landing_camp_plan.py
           python3 scripts/export_landing_camp_collision.py
       - name: Build editable town plan and engine map
         run: |
+          python3 scripts/build_meridian_camp_graphics.py
           python3 scripts/stage_meridian_shady_forest_tileset.py
           python3 scripts/generate_landing_camp_metatile_prototype.py
           python3 scripts/stage_landing_camp_map_templates.py
           python3 scripts/register_meridian_shady_forest_tileset.py
           python3 scripts/register_landing_camp_prototype.py
+          python3 scripts/integrate_meridian_original_camp_art.py
+          python3 scripts/validate_meridian_camp_engine_assets.py
       - name: Render engine layout
         run: python3 scripts/render_meridian_actual_engine_map.py
       - name: Reject repeated terrain IDs and definitions
