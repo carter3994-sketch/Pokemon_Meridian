@@ -1,31 +1,38 @@
 # Pokémon: Meridian — Shared Project Status
 
-**Primary maintainer:** Codex  
-**Status record created:** 2026-11-10  
+**Primary maintainer:** Codex
+**Updated:** 2026-11-10
 **Authority:** [MASTER_DIRECTIVE.md](MASTER_DIRECTIVE.md)
 
 ## Current milestone
-Landing Camp production map and opening-chapter engineering are in progress; this status entry establishes coordination only, **not a fresh verification of game functionality**.
+Landing Camp production environment and Chapter 1 engineering remain in progress. The camp still uses debug arrival and temporary interiors. Final playability and visual acceptance are incomplete.
 
-## Evidence available in repository
-The repository README reports a prior verified Landing Camp checkpoint at commit `18470794ed3c55e37e0e8be2184cbc02b6ad55db`, including compilation and some mGBA map/door tests. This summary is based on existing repository documentation, not new testing in this session. Check current `develop` and CI before asserting up-to-date build status.
+## Verified engineering state
+- `develop` inspected at `d43921da9f5dbb2effef8707508758069c31da57`.
+- PR #12, `fix/map-registry-null-connections`: `bd8ac6dc` fixes a reproduced null-connections crash; `b612a675` validates static warp destination maps and indexes, while explicitly counting dynamic warps as requiring runtime verification.
+- Seven regression tests pass locally. Source audit: 935 maps, 785 layouts, 266 connections, 2,607 warps; 64 dynamic warps excluded from static destination resolution; zero errors.
+- Fresh generated Landing Camp audit in an isolated checkout at `b612a675`: 941 maps, 791 layouts, 2,622 warps, zero errors. Existing static collision/reachable-door/paired-return checks pass. This generated map uses `develop` artwork, not Work's newer waterfront branch.
+- Source CI compiled a ROM successfully at `65514db8` ([run](https://github.com/carter3994-sketch/Pokemon_Meridian/actions/runs/42952413364)). This workflow does not register playable Landing Camp. Local compilation was not performed.
 
-## Active work ownership
-- **ChatGPT Project:** Chapter 1 story and dialogue proposals; owner approval before implementation.
-- **ChatGPT Work:** approved Landing Camp visuals, tilesets, map integration, art QA.
-- **Codex:** repository/engine audit, independent gameplay systems, build/test infrastructure, integration coordination, and ongoing maintenance of this file.
+## Latest Landing Camp ROM evidence
+Work's integration CI succeeded at `f966f929efce985e98e155249ed213887d8b6bd8` ([run](https://github.com/carter3994-sketch/Pokemon_Meridian/actions/runs/42948669070)). Codex downloaded artifact `13824840223`, checked the GBA header and SHA-256 `0d5285a706aabb8a673ec9778d8dd10304e90755ed7bc52d6cf32f5c2fdcdd00`, and ran bundled mGBA to first VBlank with exit code 0. Startup produced emulator diagnostics documented in the evidence record; these are not claimed resolved.
 
-## Current blockers and approvals
-- Approved Landing Camp reference art must be available to any agent implementing production graphics; do not replace it with speculative or simplified art.
-- Chapter 1 proposed dialogue and event detail remain subject to owner review.
-- Latest build status, branch overlap, full map quality and emulator playability require fresh verification by the implementing agents.
+Work reports dock/collision and five building round trips on that ROM. Those gameplay tests were not repeated by Codex this session. Later art head `49136383` has not been replayed here. See [fresh audit/startup evidence](../verification/codex_registry_b612a675.json) and attributed prior tests in CODEX_PROGRESS.md.
 
-## Next actions for Codex
-1. Inspect current `develop`, workflows, map files, commits and open PRs.
-2. Reconcile this initial record with actual verified state and link to commit/test evidence.
-3. Create/update role-specific coordination files and an integration plan.
-4. Coordinate with Work before changing shared map/tileset resources.
-5. Maintain this shared log after each significant integrated milestone.
+## Owners and active PRs
+| Owner | Active work | Branch / PR |
+| --- | --- | --- |
+| ChatGPT Work | Landing Camp art, waterfront and visual QA | `art/landing-camp-waterfront`, draft #10 |
+| Codex / earlier QA session | Town Design QA and prior coordination records | `qa/landing-camp-coordination`, #8 |
+| Codex / this session | Registry/warp validation and consolidated status | `fix/map-registry-null-connections`, #12 |
+| ChatGPT Project | Approved Guardian/city canon | `creative/approved-guardian-city-lore`, #7 |
+| ChatGPT Project | Approved father legacy and mentor arc | `creative/approved-father-legacy`, #9 |
+| ChatGPT Project | Approved Scene 4 / journal gate specification | `creative/approved-medical-awakening-scene`, #11 |
 
-## Verified change log
-- 2026-11-10: Coordination directive and agent entry point added; **documentation change only**, no ROM compilation claimed.
+No PR merged in this session. Coordination content overlapping #8 and full creative records on #7/#9/#11 need reconciliation; preserve their evidence and approvals. All six coordination paths exist on this branch.
+
+## Blockers and next priorities
+- **Work:** provide permanent medical interior and event positions for Scene 4; maintain current rendered/gameplay evidence and obtain final visual approval.
+- **Codex:** integrate/reconcile QA and coordination records; test exact new ROM after any map integration, including doors, collisions and save/load. Implement approved Scene 4 after the environment handoff. Keep debug camp entry available for QA.
+- **ChatGPT Project / owner:** approve Scene 5 and remaining dialogue as needed; preserve precise approved specifications. No creative approval is required for the registry audit changes.
+- The generated camp source audit and startup smoke are limited checks, not a completed gameplay or visual test. Save/load, final camp appearance, permanent interiors, provision-store/cave entrances and full opening remain unfinished.
