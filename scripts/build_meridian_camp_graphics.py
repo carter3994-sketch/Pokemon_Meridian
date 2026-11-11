@@ -17,7 +17,7 @@ W, H = PLAN["width"], PLAN["height"]
 assert (W, H) == (48, 40)
 # One 16-color palette; color 0 is reserved for transparency.
 COLORS = [
-    (0, 0, 0), (64, 111, 67), (84, 139, 78), (123, 163, 93),
+    (0, 0, 0), (48, 91, 51), (72, 128, 64), (127, 168, 79),
     (180, 164, 109), (210, 190, 137), (111, 85, 69), (150, 108, 79),
     (193, 139, 96), (69, 92, 114), (91, 137, 156), (146, 185, 184),
     (75, 74, 88), (129, 127, 135), (220, 160, 174), (246, 207, 207),
@@ -351,7 +351,7 @@ for x,y in ((10,25),(22,26),(27,24)):
 for qy in range(4):
     for qx in range(7):
         x,y=2+qx,14+qy
-        assert PLAN["rows"][y][x]=="~", ("ship overlaps non-water",x,y)
+        assert PLAN["rows"][y][x]=="~" or [x,y]==PLAN["landmarks"]["ship_boarding"], ("ship overlaps land",x,y)
         grid[y][x]=f"vessel_{qx}_{qy}"
 # Coordinate-stable material variants: keep the original architectural modules
 # intact, but prevent large uniform terrain and roof slabs. These are authored
@@ -392,87 +392,135 @@ for y in range(H):
             # tiles share the same source texture, including along roof runs.
             phase=(x+2*y)%5
             if phase: grid[y][x]=f"{base}_material_{phase}"
-# Production HQ asset, adapted from the approved Aevor reference. Keep its
-# own 15-color palette rather than forcing blue metal and gold into grass colors.
-hq_image=Image.open(ROOT/"graphics/meridian/landing_camp/headquarters.png")
-assert hq_image.mode=="P" and hq_image.size==(96,80)
-hq_palette=[tuple(hq_image.getpalette()[i:i+3]) for i in range(0,48,3)]
-# Composite sprite transparency over matching camp grass, not the BG backdrop.
-hq_image.putdata([15 if value==0 else value for value in hq_image.getdata()])
-for yy,row in enumerate(PLAN["rows"]):
-    for xx,ch in enumerate(row):
-        if ch=="H": grid[yy][xx]="grass" if (xx+2*yy)%5==0 else f"grass_material_{(xx+2*yy)%5}"
-for qy in range(5):
-    for qx in range(6):
-        name=f"headquarters_{qx}_{qy}"
-        ART[name]=hq_image.crop((qx*16,qy*16,qx*16+16,qy*16+16))
-        if set(ART[name].getdata())!={15}:
-            grid[6+qy][25+qx]=name
+# Ground textures share a palette and are used below both architecture and
+# trees. Work at the native map resolution so individual blades stay legible.
+ground_names = []
+for phase in range(12):
+    name = f"meadow_{phase}"
+    def paint_meadow(draw):
+        for index, (x, y) in enumerate(((2, 5), (9, 4), (6, 12), (13, 10))):
+            x = 1 + (x + phase * (index + 1)) % 13
+            y = 2 + (y + phase * (4 - index)) % 12
+            draw.line((x, y, x + 2, y + 1), fill=1)
+            draw.point((x + 1, y - 1), fill=3)
+            if index < 2:
+                draw.point((x, y - 2), fill=3)
+                draw.point((x + 2, y - 1), fill=3)
+        draw.point(((phase * 7 + 3) % 16, (phase * 11 + 7) % 16), fill=3)
+        if phase >= 8:
+            for x, y in ((5, 11), (11, 13)):
+                draw.line((x, y, x-2, y-4), fill=1)
+                draw.line((x, y, x+2, y-4), fill=1)
+                draw.line((x-2, y-4, x-3, y-5), fill=3)
+                draw.point((x+2, y-5), fill=3)
+                if phase in (8, 9):
+                    petal = 14 if phase == 8 else 5
+                    draw.line((x, y-6, x, y-4), fill=petal)
+                    draw.line((x-1, y-5, x+1, y-5), fill=petal)
+                    draw.point((x, y-5), fill=8)
+                else:
+                    draw.line((x, y-5, x, y-1), fill=3)
+    tile(name, 2, paint_meadow)
+    ground_names.append(name)
 
-# Replace the obsolete sailboat with the reference-based expedition vessel.
-ship_image=Image.open(ROOT/"graphics/meridian/landing_camp/expedition_ship.png")
-assert ship_image.mode=="P" and ship_image.size==(112,48)
-ship_palette=[tuple(ship_image.getpalette()[i:i+3]) for i in range(0,48,3)]
-# Ship index 0 stays transparent; packed metatiles use an ocean underlay.
-for qy in range(4):
-    for qx in range(7):
-        xx,yy=2+qx,14+qy
-        phase=(xx+2*yy)%5
-        grid[yy][xx]="water" if phase==0 else f"water_material_{phase}"
+
+def meadow(x, y):
+    # Mix both coordinates to avoid diagonal stripes across large meadows.
+    seed = ((x+1)*73856093) ^ ((y+1)*19349663) ^ ((x+3)*(y+7)*83492791)
+    parity = (x+y) % 2
+    cluster = ((x//3+1)*37 + (y//3+1)*19) % 11
+    if cluster < 4 and (seed >> 10) % 5 < 2:
+        return ground_names[8 + parity + 2*(cluster >= 2)]
+    return ground_names[parity + 2*((seed >> 5) % 4)]
+
+
+path_cells = set("=+A12345F")
+path_neighbors = path_cells | {"D"}
+edges = ((0, -1), (1, 0), (0, 1), (-1, 0))
+for y, row in enumerate(PLAN["rows"]):
+    for x, cell in enumerate(row):
+        if cell in ".THMLSQR":
+            grid[y][x] = meadow(x, y)
+        elif cell in path_cells:
+            sides = tuple(0 <= x+dx < W and 0 <= y+dy < H
+                          and PLAN["rows"][y+dy][x+dx] in path_neighbors for dx, dy in edges)
+            phase = (x + 2*y) % 3
+            name = f"trail_{''.join(str(int(side)) for side in sides)}_{phase}"
+            if name not in ART:
+                trail = ART[ground_names[phase]].copy()
+                draw = ImageDraw.Draw(trail)
+                for py in range(16):
+                    for px in range(16):
+                        distances = (py, 15-px, 15-py, px)
+                        edge_distance = min((d for d, connected in zip(distances, sides)
+                                             if not connected), default=16)
+                        drift = ((px*3 + py*5 + phase*7) % 11 == 0)
+                        if edge_distance >= 3 or (edge_distance == 2 and not drift):
+                            draw.point((px, py), fill=4)
+                        elif edge_distance == 1 and drift:
+                            draw.point((px, py), fill=5)
+                for px, py in ((4+phase, 4), (12, 6+phase), (6, 12), (11, 11)):
+                    if trail.getpixel((px, py)) == 4:
+                        draw.point((px, py), fill=5)
+                        if px == 6:
+                            draw.point((px+1, py), fill=6)
+                ART[name] = trail
+            grid[y][x] = name
+
+# Keep the expedition sprites and their palettes. Give each building a
+# character-scale silhouette with its base and doorway anchored to the map.
+module_palettes = {}
+module_slots = {}
+underlays = {}
+building_footprints = set()
+building_specs = (
+    ("headquarters", 7, (144, 112), "hq_door", 48),
+    ("medical_center", 10, (72, 64), "medical_door", 24),
+    ("research_lab", 11, (72, 88), "research_door", 24),
+    ("supply_depot", 12, (96, 64), "supply_door", 32),
+    ("living_quarters", 4, (80, 48), "quarters_door", 24),
+    ("provision_store", 5, (64, 56), None, 24),
+)
+for asset, slot, size, landmark, door_px in building_specs:
+    sprite = Image.open(ROOT/f"graphics/meridian/landing_camp/{asset}.png")
+    assert sprite.mode == "P"
+    module_palettes[str(slot)] = [tuple(sprite.getpalette()[i:i+3]) for i in range(0,48,3)]
+    scaled_door = door_px * size[0] // sprite.width
+    sprite = sprite.resize(size, Image.Resampling.NEAREST)
+    dx, dy = PLAN["landmarks"][landmark] if landmark else (33, 19)
+    left = dx*16 + 8 - scaled_door
+    top = (dy+1)*16 - sprite.getbbox()[3]
+    # Align drawing to the nearest 8px grid to reuse building tile quarters.
+    left, top = (left//8)*8, ((top+7)//8)*8
+    x0, y0 = left//16, top//16
+    canvas = Image.new("P", (size[0]+16, size[1]+16), 0)
+    canvas.putpalette(sprite.getpalette())
+    canvas.paste(sprite, (left%16, top%16))
+    for y in range(y0, dy+1):
+        for x in range(x0, (left+size[0]+15)//16):
+            u, v = (x-x0)*16, (y-y0)*16
+            part = canvas.crop((u, v, u+16, v+16))
+            if not part.getbbox():
+                continue
+            name = f"{asset}_{x-x0}_{y-y0}"
+            ART[name] = part
+            module_slots[name] = slot
+            underlays[name] = grid[y][x]
+            grid[y][x] = name
+            building_footprints.add((x, y))
+    if landmark:
+        assert (dx, dy) in building_footprints, landmark
+
+ship_image = Image.open(ROOT/"graphics/meridian/landing_camp/expedition_ship.png")
+assert ship_image.mode == "P" and ship_image.size == (112, 48)
+ship_palette = [tuple(ship_image.getpalette()[i:i+3]) for i in range(0,48,3)]
 for qy in range(3):
     for qx in range(7):
-        name=f"expedition_ship_{qx}_{qy}"
-        ART[name]=ship_image.crop((qx*16,qy*16,qx*16+16,qy*16+16))
-        if set(ART[name].getdata())!={15}: grid[14+qy][2+qx]=name
-
-# Dense forest: complete 3x4 conifers on contiguous forest footprints.
-forest_image=Image.open(ROOT/"graphics/meridian/landing_camp/forest_conifer.png")
-assert forest_image.mode=="P" and forest_image.size==(48,64)
-forest_palette=[tuple(forest_image.getpalette()[i:i+3]) for i in range(0,48,3)]
-forest_image.putdata([15 if value==0 else value for value in forest_image.getdata()])
-for qy in range(4):
-    for qx in range(3):
-        ART[f"conifer_{qx}_{qy}"]=forest_image.crop((qx*16,qy*16,qx*16+16,qy*16+16))
-for yy,row in enumerate(PLAN["rows"]):
-    for xx,ch in enumerate(row):
-        if ch=="T":
-            phase=(xx+2*yy)%5
-            grid[yy][xx]="grass_dark" if phase==0 else f"grass_dark_material_{phase}"
-for yy in range(0,H-3,4):
-    for xx in range(0,W-2,3):
-        if all(PLAN["rows"][y][x]=="T" for y in range(yy,yy+4) for x in range(xx,xx+3)):
-            for qy in range(4):
-                for qx in range(3):
-                    name=f"conifer_{qx}_{qy}"
-                    if set(ART[name].getdata())!={15}: grid[yy+qy][xx+qx]=name
-
-# Reference-based expedition modules. Placement and paired entrance coordinates
-# follow the settlement arrangement encoded in the navigation source.
-module_palettes={}
-module_slots={}
-module_specs=[
-    ("medical_center",10,(17,15),"M"),
-    ("research_lab",11,(17,8),"L"),
-    ("supply_depot",12,(32,12),"S"),
-    ("living_quarters",4,(37,22),"Q"),
-    ("provision_store",5,(32,17),None),
-]
-for yy,row in enumerate(PLAN["rows"]):
-    for xx,ch in enumerate(row):
-        if ch in "MLSQ":
-            phase=(xx+2*yy)%5
-            grid[yy][xx]="grass" if phase==0 else f"grass_material_{phase}"
-for asset,slot,(ox,oy),zone in module_specs:
-    sprite=Image.open(ROOT/f"graphics/meridian/landing_camp/{asset}.png")
-    assert sprite.mode=="P" and sprite.width%16==0 and sprite.height%16==0
-    module_palettes[str(slot)]=[tuple(sprite.getpalette()[i:i+3]) for i in range(0,48,3)]
-    sprite.putdata([15 if value==0 else value for value in sprite.getdata()])
-    for qy in range(sprite.height//16):
-        for qx in range(sprite.width//16):
-            name=f"{asset}_{qx}_{qy}"
-            ART[name]=sprite.crop((qx*16,qy*16,qx*16+16,qy*16+16))
-            module_slots[name]=slot
-            if set(ART[name].getdata())!={15}: grid[oy+qy][ox+qx]=name
+        part = ship_image.crop((qx*16, qy*16, qx*16+16, qy*16+16))
+        if part.getbbox():
+            name = f"expedition_ship_{qx}_{qy}"
+            ART[name] = part
+            grid[14+qy][2+qx] = name
 
 # Reference-based environment modules, with their own primary palette slots.
 env_specs=[("env_cliff_wall",0),("env_cliff_lip",0),("env_waterfall",1),
@@ -549,15 +597,28 @@ def paint_campfire(draw):
 
 
 tile("campfire_ring", 4, paint_campfire)
-underlays={}
+def paint_gangway(draw):
+    draw.rectangle((2, 0, 13, 15), fill=6)
+    draw.rectangle((4, 0, 11, 15), fill=7)
+    for y in range(1, 16, 4):
+        draw.line((4, y, 11, y), fill=8)
+    for x in (2, 13):
+        draw.line((x, 0, x, 15), fill=8)
+        draw.point((x, 2), fill=5)
+        draw.point((x, 13), fill=5)
+
+tile("ship_gangway", 0, paint_gangway)
+board_x, board_y = PLAN["landmarks"]["ship_boarding"]
 for yy,row in enumerate(PLAN["rows"]):
     for xx,ch in enumerate(row):
+        if (xx, yy) in building_footprints:
+            continue
         if ch in "^C":
             base="env_cliff_lip_0_0" if yy==0 or PLAN["rows"][yy-1][xx] not in "^C" else f"env_cliff_wall_0_{yy%2}"
             grid[yy][xx]=base+("_flip" if (xx+yy)%2 else "")
-        elif ch=="R":
-            phase=(xx+2*yy)%5
-            grid[yy][xx]="grass" if phase==0 else f"grass_material_{phase}"
+        elif (xx, yy) == (board_x, board_y):
+            grid[yy][xx] = "ship_gangway"
+            underlays["ship_gangway"] = f"env_ocean_{xx % 2 + 2 * (yy % 2)}"
         elif ch=="D":
             west = xx == 0 or row[xx - 1] != "D"
             north = yy == 0 or PLAN["rows"][yy - 1][xx] != "D"
@@ -584,6 +645,9 @@ def env_stamp(asset,ox,oy,width,height):
         for qx in range(width): grid[oy+qy][ox+qx]=f"{asset}_{qx}_{qy}"
 env_stamp("env_ruins",29,0,4,4)
 env_stamp("env_cave",43,8,3,3)
+cave_x, cave_y = PLAN["landmarks"]["cave_entrance"]
+# Extend the existing cliffside trail to the tile below the cave mouth.
+grid[cave_y+1][cave_x] = grid[cave_y+1][cave_x-1]
 for ox,oy in ((39,3),(39,11)):
     assert all(PLAN["rows"][y][x]=="^" for y in range(oy,oy+4) for x in range(ox,ox+2))
     env_stamp("env_waterfall",ox,oy,2,4)
@@ -606,39 +670,44 @@ for ty in range(0,H-3,2):
         if all(PLAN["rows"][y][x]=="T" for y in range(ty,ty+4) for x in range(tx,tx+3)):
             forest_canvas.paste(forest_source,(tx*16,ty*16),forest_mask)
             forest_placements.append([tx,ty])
-for ty,row in enumerate(PLAN["rows"]):
-    for tx,cell in enumerate(row):
-        if cell!="T": continue
-        phase=(tx+2*ty)%5
-        grid[ty][tx]="grass_dark" if phase==0 else f"grass_dark_material_{phase}"
-        part=forest_canvas.crop((tx*16,ty*16,tx*16+16,ty*16+16))
-        if not any(part.getdata()): continue
-        part.putdata([15 if value==0 else value for value in part.getdata()])
-        name=f"env_dense_forest_{tx}_{ty}"
-        ART[name]=part
-        module_slots[name]=9
-        grid[ty][tx]=name
+forest_parts = {}
+forest_palette = [tuple(forest_source.getpalette()[i:i+3]) for i in range(0,48,3)]
+forest_occupied = set()
+for y, row in enumerate(PLAN["rows"]):
+    for x, cell in enumerate(row):
+        if cell != "T":
+            continue
+        part = forest_canvas.crop((x*16, y*16, x*16+16, y*16+16))
+        if not part.getbbox():
+            continue
+        if sum(value != 0 for value in part.getdata()) >= 48:
+            forest_occupied.add((x, y))
+        pixels = part.tobytes()
+        if pixels not in forest_parts:
+            name = f"env_dense_forest_{len(forest_parts)}"
+            forest_parts[pixels] = name
+            ART[name] = part
+            module_slots[name] = 9
+            underlays[name] = meadow(x, y)
+        grid[y][x] = forest_parts[pixels]
 
-# Identical forest cells share metatile IDs as well as pixel tiles. Preserve
-# all building/door IDs independently so behavior cannot spread to a wall.
-forest_signatures={}
-forest_aliases={}
-for name,image in ART.items():
-    if name.startswith("env_dense_forest_"):
-        forest_aliases[name]=forest_signatures.setdefault(tuple(image.getdata()),name)
-for ty,row in enumerate(grid):
-    for tx,name in enumerate(row): grid[ty][tx]=forest_aliases.get(name,name)
+# Index 0 is transparent in overlays. Border art uses the same packed
+# meadow cells as the map instead of foreign Littleroot metatile indices.
+border = [meadow(x,y) for y in range(2) for x in range(2)]
+map_art = {name for row in grid for name in row}
+underlays = {name: base for name, base in underlays.items() if name in map_art}
+covered = [name for name in underlays if not name.startswith("env_dense_forest_")]
 
 # Export only cells consumed by the actual map and its underlays. Retired
 # studies should not consume metatile IDs in the native game asset export.
-used_art={name for row in grid for name in row}|set(underlays.values())
+used_art = map_art | set(underlays.values()) | set(border)
 names=[name for name in ART if name in used_art]
 atlas=Image.new("P",(16*8,16*((len(names)+7)//8)),0)
 atlas.putpalette([v for rgb in COLORS for v in rgb]+[0]*(768-48))
 for i,name in enumerate(names):
     atlas.paste(ART[name],((i%8)*16,(i//8)*16))
 atlas.save(OUT/"camp_original_metatiles_indexed.png")
-(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"7":hq_palette,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"underlays":underlays,"forest_placements":forest_placements,"engine_integrated":False},indent=2)+"\n")
+(OUT/"metatile_manifest.json").write_text(json.dumps({"palette":COLORS,"palettes":{"6":COLORS,"8":ship_palette,"9":forest_palette,**module_palettes},"tile_palettes":{n:7 if n.startswith("headquarters_") else (8 if n.startswith("expedition_ship_") else (9 if n.startswith("conifer_") else module_slots.get(n,6))) for n in names},"metatiles":{n:i for i,n in enumerate(names)},"underlays":underlays,"covered":covered,"border":border,"forest_placements":forest_placements,"engine_integrated":False},indent=2)+"\n")
 preview=Image.new("RGB",(W*16,H*16))
 for y in range(H):
     for x in range(W):
@@ -657,21 +726,17 @@ from xml.dom import minidom
 collision = json.loads((ROOT / "data/meridian_plans/landing_camp_collision_draft.json").read_text())
 assert len(collision["rows"]) == H and all(len(row) == W for row in collision["rows"])
 collision["rows"]=[list(row) for row in collision["rows"]]
-for yy,row in enumerate(PLAN["rows"]):
-    for xx,ch in enumerate(row):
-        if ch=="H": collision["rows"][yy][xx]="0"
-for yy in range(6,11):
-    for xx in range(25,31): collision["rows"][yy][xx]="1" if grid[yy][xx].startswith("headquarters_") else "0"
-collision["rows"][10][28]="0"
-for yy,row in enumerate(PLAN["rows"]):
-    for xx,ch in enumerate(row):
-        if ch in "MLSQ": collision["rows"][yy][xx]="0"
-for yy in range(H):
-    for xx in range(W):
-        if grid[yy][xx] in module_slots: collision["rows"][yy][xx]="1"
-for key in ("medical_door","research_door","supply_door","quarters_door"):
-    dx,dy=PLAN["landmarks"][key]
-    collision["rows"][dy][dx]="0"
+for y, row in enumerate(PLAN["rows"]):
+    for x, cell in enumerate(row):
+        if cell in "HMLSQ":
+            collision["rows"][y][x] = "0"
+        if grid[y][x] in module_slots:
+            collision["rows"][y][x] = "1"
+        if cell == "T":
+            collision["rows"][y][x] = "1" if (x, y) in forest_occupied else "0"
+for key in ("hq_door", "medical_door", "research_door", "supply_door", "quarters_door"):
+    dx, dy = PLAN["landmarks"][key]
+    collision["rows"][dy][dx] = "0"
 # Environment footprint collisions: stairs and the ruins floor are traversable.
 for yy,row in enumerate(PLAN["rows"]):
     for xx,ch in enumerate(row):
@@ -679,7 +744,8 @@ for yy,row in enumerate(PLAN["rows"]):
 for qy,row in enumerate(("1111","1001","1001","0000")):
     for qx,value in enumerate(row): collision["rows"][qy][29+qx]=value
 for yy in (12,13): collision["rows"][yy][41]="0"
-cx,cy=PLAN["landmarks"]["cave_entrance"];collision["rows"][cy][cx]="0"
+collision["rows"][cave_y][cave_x] = "0"
+collision["rows"][cave_y+1][cave_x] = "0"
 fire_x, fire_y = PLAN["landmarks"]["campfire"]
 collision["rows"][fire_y][fire_x] = "1"
 assert PLAN["landmarks"]["hq_door"]==[28,10]

@@ -34,7 +34,13 @@ def cells(layer):
 gids,collision=[cells(layer) for layer in root.findall('layer')[:2]]
 assert all(1<=gid<=len(names) for gid in gids)
 assert all(value in (0,1) for value in collision)
-used_ids=sorted({gid-1 for gid in gids})
+border_names = manifest["border"]
+border_ids = [names.index(name) for name in border_names]
+used_ids = sorted({gid-1 for gid in gids} | set(border_ids))
+layer_shift = int(re.search(r"#define METATILE_ATTR_LAYER_SHIFT\s+(\d+)",
+                            (ROOT / "include/global.fieldmap.h").read_text()).group(1))
+covered_layer = 1 << layer_shift
+covered = set(manifest["covered"])
 blank=(0,)*64
 tiles=[[blank],[blank]]
 caches=[{blank:0},{blank:0}]
@@ -49,31 +55,35 @@ for mid in used_ids:
     bank=0 if palette==6 or names[mid].startswith("env_") else 1
     base=bank*512
     map_ids[mid]=base+mid
-    mx=(mid%(atlas.width//16))*16
-    my=(mid//(atlas.width//16))*16
-    # Ship and dock edge cells keep index-0 transparency and put ocean
-    # pixels on the lower GBA background layer.
+    # Both layers of walkable deck cells must draw behind object sprites.
+    if names[mid] in covered:
+        attrs[bank][mid] = covered_layer
     underlay=manifest.get('underlays',{}).get(names[mid])
     sources=[(underlay,0),(names[mid],1)] if underlay else [(names[mid],0)]
     for source_name,layer in sources:
         source_mid=names.index(source_name)
         source_palette=slots.get(source_name,6)
-        source_bank=0 if source_palette==6 or source_name.startswith('env_') else 1
-        source_base=source_bank*512
+        preferred_bank = 0 if source_palette == 6 or source_name.startswith("env_") else 1
         source_mx=(source_mid%(atlas.width//16))*16
         source_my=(source_mid//(atlas.width//16))*16
         for slot,(sy,sx) in enumerate(((0,0),(0,8),(8,0),(8,8))):
             pixels=tuple(atlas.getpixel((source_mx+sx+x,source_my+sy+y)) for y in range(8) for x in range(8))
             assert all(0<=c<16 for c in pixels)
+            # A metatile may reference either graphics bank. Reuse existing
+            # pixels before allocating into the preferred bank or its spare.
+            source_bank = preferred_bank
+            alternate = 1 - preferred_bank
+            if pixels not in caches[source_bank] and (pixels in caches[alternate] or len(tiles[source_bank]) == 512):
+                source_bank = alternate
             if pixels not in caches[source_bank]:
                 index=len(tiles[source_bank])
-                assert index<512, f'Bank {source_bank} exceeds 512 tiles'
+                assert index < 512, f"Combined 1024-tile graphics budget exceeded at {source_name}"
                 tiles[source_bank].append(pixels)
                 for flip_y in (False,True):
                     for flip_x in (False,True):
                         oriented=tuple(pixels[(7-y if flip_y else y)*8+(7-x if flip_x else x)] for y in range(8) for x in range(8))
                         caches[source_bank].setdefault(oriented,index|(0x400 if flip_x else 0)|(0x800 if flip_y else 0))
-            metas[bank][mid*8+layer*4+slot]=(source_palette<<12)|source_base|caches[source_bank][pixels]
+            metas[bank][mid*8+layer*4+slot]=(source_palette<<12)|(source_bank*512)|caches[source_bank][pixels]
 packed_banks=[]
 for bank,dest in enumerate(DESTS):
     dest.mkdir(parents=True,exist_ok=True)
@@ -112,11 +122,11 @@ for mid in used_ids:
             assert decoded==expected,(mid,layer,slot)
 plan=json.loads((ROOT/'data/meridian_plans/landing_camp_arrival.json').read_text())
 behaviors=re.findall(r'\bMB_[A-Z0-9_]+\b',(ROOT/'include/constants/metatile_behaviors.h').read_text().split('};',1)[0])
-for key in ('medical_door','research_door','hq_door','supply_door','quarters_door'):
+for key in ('medical_door','research_door','hq_door','supply_door','quarters_door','ship_boarding'):
     x,y=plan['landmarks'][key]
     assert collision[y*w+x]==0,('Blocked entrance',key)
     mid=gids[y*w+x]-1
-    attrs[map_ids[mid]//512][mid]=behaviors.index('MB_NON_ANIMATED_DOOR')
+    attrs[map_ids[mid]//512][mid]|=behaviors.index('MB_NON_ANIMATED_DOOR')
 for bank,dest in enumerate(DESTS):
     (dest/'metatile_attributes.bin').write_bytes(struct.pack('<512H',*attrs[bank]))
 # Primary palette slots are private to the camp, with valid defaults for
@@ -136,7 +146,9 @@ for slot,palette in manifest.get('palettes',{'6':manifest['palette']}).items():
     dest.parent.mkdir(parents=True,exist_ok=True)
     dest.write_text('JASC-PAL\n0100\n16\n'+''.join(f'{r} {g} {b}\n' for r,g,b in palette))
 words=[map_ids[gid-1]|(0xC00 if blocked else 0)|0x3000 for gid,blocked in zip(gids,collision)]
-(ROOT/'data/layouts/MeridianLandingCampPrototype/map.bin').write_bytes(struct.pack('<1920H',*words))
+camp_layout = ROOT / 'data/layouts/MeridianLandingCampPrototype'
+(camp_layout / 'map.bin').write_bytes(struct.pack('<1920H', *words))
+(camp_layout / 'border.bin').write_bytes(struct.pack('<4H', *(map_ids[mid] for mid in border_ids)))
 # Register a private primary bank: General is shared by the rest of Emerald
 # and must never be overwritten to make room for camp art.
 symbol='MeridianCampEnvironment'
@@ -176,7 +188,7 @@ target.write_text(json.dumps(layouts,indent=2)+'\n')
 report={'status':'assets_integrated_into_real_engine_map_inputs','map_size':[w,h],
         'authored_metatiles':len(names),'unique_primary_8x8_tiles':len(tiles[0]),
         'unique_secondary_8x8_tiles':len(tiles[1]),'packed_4bpp_bytes':sum(map(len,packed_banks)),
-        'packed_tile_roundtrip':'passed','map_unique_metatile_ids':len(set(words)),
+        'packed_tile_roundtrip':'passed','map_unique_metatile_ids':len({word & 1023 for word in words}),
         'collision_blocked':sum(collision),'primary_tileset':f'gTileset_{symbol}',
         'secondary_tileset':'gTileset_MeridianShadyForest',
         'note':'Requires compilation and emulator verification; visual approval remains separate'}

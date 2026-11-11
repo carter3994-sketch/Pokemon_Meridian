@@ -33,7 +33,7 @@ landmarks = {
     "quarters_door": [38, 23], "arrival": [12, 23],
     "campfire": [28, 17], "forest_exit": [23, 39],
     "coastal_exit": [44, 29], "cave_entrance": [44, 10],
-    "ruins_gate": [31, 4], "north_trail": [23, 0],
+    "ship_boarding": [6, 17], "ruins_gate": [31, 4], "north_trail": [23, 0],
 }
 payload = {
     "schema": "meridian-map-plan-v1",
