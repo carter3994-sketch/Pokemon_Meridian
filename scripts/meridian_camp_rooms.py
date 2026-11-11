@@ -271,7 +271,7 @@ def build_camp_rooms(root):
                                                    (3,0),(3,1),(3,2),(3,3)))
     exit_types = {"threshold","ruin_exit"}
     enum = (root/"include/constants/metatile_behaviors.h").read_text().split("};",1)[0]
-    warp_behavior = re.findall(r"\bMB_[A-Z0-9_]+\b",enum).index("MB_SOUTH_ARROW_WARP")
+    warp_behavior = re.findall(r"\bMB_[A-Z0-9_]+\b",enum).index("MB_NON_ANIMATED_DOOR")
     fieldmap = (root/"include/global.fieldmap.h").read_text()
     shift = int(re.search(r"#define METATILE_ATTR_LAYER_SHIFT\s+(\d+)",fieldmap).group(1))
     covered = 1 << shift
