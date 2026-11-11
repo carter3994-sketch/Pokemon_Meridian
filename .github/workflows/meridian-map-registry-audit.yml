@@ -6,12 +6,14 @@ on:
     paths:
       - '.github/workflows/meridian-map-registry-audit.yml'
       - 'tools/meridian_map_audit.py'
+      - 'tests/test_meridian_map_audit.py'
       - 'data/maps/**'
       - 'data/layouts/**'
   pull_request:
     paths:
       - '.github/workflows/meridian-map-registry-audit.yml'
       - 'tools/meridian_map_audit.py'
+      - 'tests/test_meridian_map_audit.py'
       - 'data/maps/**'
       - 'data/layouts/**'
 permissions:
@@ -22,6 +24,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Test registry audit failure handling
+        run: python3 -m unittest discover -s tests -v
       - name: Run map registry audit
         id: audit
         shell: bash
