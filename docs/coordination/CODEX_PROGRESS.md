@@ -22,3 +22,11 @@ Fresh local audit reproduced a TypeError on valid Porymap `connections: null`. F
 Executed `python3 -m unittest discover -s tests -v`: 3 passed. Executed `python3 tools/meridian_map_audit.py`: 935 maps, 785 layouts, zero errors. No Landing Camp maps are checked into this registry; the integration workflow generates them. This is source registry validation, not collision, warp, or emulator verification.
 
 No ROM compiled or emulator launched this session. No ARM compiler found. A make dry run stopped on missing generated `tools/mapjson/mapjson`; it was not a compilation attempt. Work's PR #10 reports newer ROM verification separately; that report has not been replayed here. No map, art, gameplay script or creative design changed.
+
+## Continued audit — warp validation and fresh ROM startup
+
+Engineering commit `b612a675` extends PR #12 with static warp destination/index checks and explicit MAP_DYNAMIC exclusions. Seven tests pass; the 935-map source registry has 2,607 warps (64 dynamic) and no errors. Generated the current develop-based camp in a detached worktree, ran the existing engine asset validator successfully, then audited 941 maps / 2,622 warps with no errors. No generated art or map files committed.
+
+Inspected successful source compilation CI at `65514db8`, run `42952413364`. Downloaded Work's successful integration ROM artifact `13824840223` from run `42948669070`, source `f966f929`; header and SHA-256 match. Bundled mGBA `-S 5` returned 0 within 30 seconds. Emulator diagnostics remain documented; this tests startup to first VBlank only. No local compilation, traversal, save/load or final visual verification claimed.
+
+Full commands, counts, source distinctions and limitations: [evidence](../verification/codex_registry_b612a675.json). Next: run the registry CI on this update, reconcile open handoffs and preserve Work's map ownership.

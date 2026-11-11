@@ -1,0 +1,174 @@
+{
+  "session_date": "2026-11-10",
+  "engineering_commit": "b612a675",
+  "source_base": "d43921da9f5dbb2effef8707508758069c31da57",
+  "source_audit": {
+    "total_registered_maps": 935,
+    "total_layouts": 785,
+    "total_connections": 266,
+    "total_warps": 2607,
+    "dynamic_warps_not_statically_resolved": 64,
+    "errors": [],
+    "note": "Static registry, connection and warp destination audit only; dynamic warps require runtime verification. Does not prove collisions, tileset quality, gameplay or ROM compilation."
+  },
+  "generated_camp_audit": {
+    "total_registered_maps": 941,
+    "total_layouts": 791,
+    "total_connections": 266,
+    "total_warps": 2622,
+    "dynamic_warps_not_statically_resolved": 64,
+    "landing_camp_candidates": [
+      {
+        "name": "MeridianLandingCampMedical",
+        "group": "gMapGroup_TownsAndRoutes",
+        "layout": "LAYOUT_MERIDIAN_LANDING_CAMP_MEDICAL",
+        "width": 13,
+        "height": 13,
+        "primary_tileset": "gTileset_Building",
+        "secondary_tileset": "gTileset_Lab",
+        "events": {
+          "object_events": 0,
+          "warp_events": 2,
+          "coord_events": 0,
+          "bg_events": 0
+        }
+      },
+      {
+        "name": "MeridianLandingCampResearch",
+        "group": "gMapGroup_TownsAndRoutes",
+        "layout": "LAYOUT_MERIDIAN_LANDING_CAMP_RESEARCH",
+        "width": 13,
+        "height": 13,
+        "primary_tileset": "gTileset_Building",
+        "secondary_tileset": "gTileset_Lab",
+        "events": {
+          "object_events": 0,
+          "warp_events": 2,
+          "coord_events": 0,
+          "bg_events": 0
+        }
+      },
+      {
+        "name": "MeridianLandingCampHeadquarters",
+        "group": "gMapGroup_TownsAndRoutes",
+        "layout": "LAYOUT_MERIDIAN_LANDING_CAMP_HEADQUARTERS",
+        "width": 11,
+        "height": 9,
+        "primary_tileset": "gTileset_Building",
+        "secondary_tileset": "gTileset_BrendansMaysHouse",
+        "events": {
+          "object_events": 0,
+          "warp_events": 2,
+          "coord_events": 0,
+          "bg_events": 0
+        }
+      },
+      {
+        "name": "MeridianLandingCampSupply",
+        "group": "gMapGroup_TownsAndRoutes",
+        "layout": "LAYOUT_MERIDIAN_LANDING_CAMP_SUPPLY",
+        "width": 11,
+        "height": 9,
+        "primary_tileset": "gTileset_Building",
+        "secondary_tileset": "gTileset_BrendansMaysHouse",
+        "events": {
+          "object_events": 0,
+          "warp_events": 2,
+          "coord_events": 0,
+          "bg_events": 0
+        }
+      },
+      {
+        "name": "MeridianLandingCampQuarters",
+        "group": "gMapGroup_TownsAndRoutes",
+        "layout": "LAYOUT_MERIDIAN_LANDING_CAMP_QUARTERS",
+        "width": 11,
+        "height": 9,
+        "primary_tileset": "gTileset_Building",
+        "secondary_tileset": "gTileset_BrendansMaysHouse",
+        "events": {
+          "object_events": 0,
+          "warp_events": 2,
+          "coord_events": 0,
+          "bg_events": 0
+        }
+      },
+      {
+        "name": "MeridianLandingCampPrototype",
+        "group": "gMapGroup_TownsAndRoutes",
+        "layout": "LAYOUT_MERIDIAN_LANDING_CAMP_PROTOTYPE",
+        "width": 48,
+        "height": 40,
+        "primary_tileset": "gTileset_MeridianCampEnvironment",
+        "secondary_tileset": "gTileset_MeridianShadyForest",
+        "events": {
+          "object_events": 3,
+          "warp_events": 5,
+          "coord_events": 0,
+          "bg_events": 0
+        }
+      }
+    ],
+    "errors": [],
+    "note": "Static registry, connection and warp destination audit only; dynamic warps require runtime verification. Does not prove collisions, tileset quality, gameplay or ROM compilation."
+  },
+  "generated_engine_asset_validation": {
+    "checked_entrances": [
+      "medical_door",
+      "research_door",
+      "hq_door",
+      "supply_door",
+      "quarters_door"
+    ],
+    "reachable_cells": 1060,
+    "packed_bank_bytes": 16384,
+    "pass": true,
+    "scope": "Static map, VRAM references, reachable door behavior and paired return warps; gameplay not tested"
+  },
+  "regression_tests": {
+    "command": "python3 -m unittest discover -s tests -v",
+    "passed": 7
+  },
+  "source_ci": {
+    "commit": "65514db8fc84c658a724238453c42cc263df00fd",
+    "run": "https://github.com/carter3994-sketch/Pokemon_Meridian/actions/runs/42952413364",
+    "result": "success",
+    "scope": "Source ROM compilation; does not register playable Landing Camp."
+  },
+  "published_rom_startup": {
+    "source_commit": "f966f929efce985e98e155249ed213887d8b6bd8",
+    "run": "https://github.com/carter3994-sketch/Pokemon_Meridian/actions/runs/42948669070",
+    "artifact_id": 13824840223,
+    "sha256": "0d5285a706aabb8a673ec9778d8dd10304e90755ed7bc52d6cf32f5c2fdcdd00",
+    "bytes": 33554432,
+    "header_valid": true,
+    "emulator": "bundled tools/mgba/mgba-rom-test",
+    "emulator_sha256": "4304688a0b44007cca23c9e887af17c44530fd602ee3d1e57a232da397bec769",
+    "command": "timeout 30s tools/mgba/mgba-rom-test -S 5 pokeemerald.gba",
+    "exit_code": 0,
+    "scope": "Startup until first SWI 5 / VBlank only. No walking or game interactions tested.",
+    "diagnostics": "Emulator printed invalid initial DMA-source, BIOS-load, flash-write and stub-I/O diagnostics; exit code zero is not evidence that these diagnostics are resolved."
+  },
+  "not_verified": [
+    "Local ROM compilation",
+    "Emulator traversal or door return replay",
+    "Save/load",
+    "Final visual approval",
+    "Permanent interiors",
+    "Work art branch head 49136383 after f966f929"
+  ],
+  "generation_commands": [
+    "python3 scripts/validate_landing_camp_grid.py",
+    "python3 scripts/export_landing_camp_plan.py",
+    "python3 scripts/export_landing_camp_collision.py",
+    "python3 scripts/build_meridian_camp_graphics.py",
+    "python3 scripts/stage_meridian_shady_forest_tileset.py",
+    "python3 scripts/generate_landing_camp_metatile_prototype.py",
+    "python3 scripts/stage_landing_camp_map_templates.py",
+    "python3 scripts/register_meridian_shady_forest_tileset.py",
+    "python3 scripts/register_landing_camp_prototype.py",
+    "python3 scripts/integrate_meridian_original_camp_art.py",
+    "python3 scripts/validate_meridian_camp_engine_assets.py",
+    "python3 tools/meridian_map_audit.py"
+  ]
+}
