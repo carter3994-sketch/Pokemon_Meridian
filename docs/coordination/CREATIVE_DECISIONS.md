@@ -1,6 +1,6 @@
 # Pokémon: Meridian — Creative Decisions
 **Owner:** ChatGPT Project (creative). **Status:** Established canon; this document records earlier owner decisions.  
-**Updated:** 2026-11-10. **Change type:** documentation only, no new owner approvals claimed.
+**Updated:** 2026-11-10. **Change type:** owner-confirmed Chapter 1 structural decisions documented; narrative treatment remains pending complete revision.
 
 ## Established project canon
 - GBA fan game using the repository's actual Emerald expansion engine; traditional turn-based Pokémon gameplay.
@@ -25,7 +25,16 @@
 - Title used in the creative draft: **The Last Shore**.
 - The expedition **arrives desperate and chaotic**, with a damaged ship, scarce food/supplies, and an emergency shore landing.
 - Character creation takes place **before** the voyage/arrival.
-- The previous Chapter 1 dialogue, exact food counts, scene sequence, Kael's first lines, how starters were obtained, and chapter endpoint are **proposals pending owner review**, not established canon.
+### Owner-confirmed structural choices (2026-11-10)
+The owner selected these six directions **as a framework for a complete upcoming rewrite**:
+1. Chapter 1 contains the nine-stage outline: character creation; below deck; emergency landfall; Landing Camp; survival briefing; starter selection/rival battle; Kael at northern forest boundary; first forest/freshwater expedition; nighttime disturbance.
+2. The player awakens **several days after arrival**, once survivors have established a partial Landing Camp.
+3. The three starter Pokémon **approach the expedition independently for mysterious reasons**; they are **not** rescued from a nest as proposed in the older draft.
+4. The rival's name stays **undecided**.
+5. Kael first appears at the **northern forest boundary**, warning outsiders away.
+6. Initial play includes camp exploration, rival battle, introductory wild battles and the first survival mission.
+
+**Critical approval scope:** In the same message the owner specified: "i want the entirety revised,im going to send you what i want and then you can revise." Thus the decisions above are recorded as current selected structural direction, **NOT approval of the previous scene writing, exact ordering details, dialogue, incidents, location staging, mission design or final implementation**. The complete chapter treatment is pending the owner's new instructions. Do not give engineering a green light for story-event implementation based on this selection alone.
 
 ## Approval process
 New names, exact dialogue, NPC roles, level pacing, maps and scene transitions must be explicitly reviewed by the owner before being promoted from drafts. Approved files must be labeled **APPROVED** with evidence/date. Engineering may implement generic reusable systems without assuming draft decisions are final.
