@@ -30,7 +30,7 @@ if unknown:
 landmarks = {
     "medical_door": [18, 17], "research_door": [18, 11],
     "hq_door": [28, 10], "supply_door": [34, 14],
-    "quarters_door": [38, 23], "arrival": [12, 23],
+    "quarters_door": [38, 23], "provision_door": [33, 19], "arrival": [12, 23],
     "campfire": [28, 17], "forest_exit": [23, 39],
     "coastal_exit": [44, 29], "cave_entrance": [44, 10],
     "ship_boarding": [6, 17], "ruins_gate": [31, 4], "north_trail": [23, 0],

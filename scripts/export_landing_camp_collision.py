@@ -14,7 +14,7 @@ if len(rows) != plan["height"] or any(len(row) != plan["width"] for row in rows)
     raise SystemExit("Invalid grid dimensions")
 walkable = set(".=D+AF12345")
 blocked = set("MLHSQRTC^~")
-if set("".join(rows)) != walkable | blocked:
+if not set("".join(rows)) <= walkable | blocked:
     raise SystemExit("Unexpected terrain symbols")
 collision = ["".join("0" if c in walkable else "1" for c in row) for row in rows]
 landmarks = plan["landmarks"]

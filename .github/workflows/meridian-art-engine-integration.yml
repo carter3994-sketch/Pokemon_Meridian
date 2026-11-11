@@ -7,6 +7,8 @@ on:
       - 'graphics/meridian/landing_camp/**'
       - 'scripts/build_meridian_camp_graphics.py'
       - 'scripts/meridian_camp_terrain.py'
+      - 'scripts/meridian_camp_rooms.py'
+      - 'scripts/register_landing_camp_prototype.py'
       - '.github/workflows/meridian-art-engine-integration.yml'
   push:
     branches: [develop]
@@ -20,6 +22,8 @@ on:
       - 'scripts/integrate_meridian_original_camp_art.py'
       - 'scripts/build_meridian_camp_graphics.py'
       - 'scripts/meridian_camp_terrain.py'
+      - 'scripts/meridian_camp_rooms.py'
+      - 'scripts/register_landing_camp_prototype.py'
       - 'scripts/render_meridian_actual_engine_map.py'
       - '.github/workflows/meridian-art-engine-integration.yml'
 permissions:
@@ -100,7 +104,8 @@ jobs:
           path: |
             data/tilesets/primary/meridian_camp_environment/
             data/tilesets/secondary/meridian_shady_forest/
-            data/layouts/MeridianLandingCampPrototype/
+            data/tilesets/secondary/meridian_expedition_rooms/
+            data/layouts/MeridianLandingCamp*/
             data/maps/MeridianLandingCamp*/
             build/meridian_candidate_review/original_art_engine_integration.json
             build/meridian_candidate_review/engine_asset_validation.json

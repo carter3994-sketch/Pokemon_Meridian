@@ -122,7 +122,7 @@ for mid in used_ids:
             assert decoded==expected,(mid,layer,slot)
 plan=json.loads((ROOT/'data/meridian_plans/landing_camp_arrival.json').read_text())
 behaviors=re.findall(r'\bMB_[A-Z0-9_]+\b',(ROOT/'include/constants/metatile_behaviors.h').read_text().split('};',1)[0])
-for key in ('medical_door','research_door','hq_door','supply_door','quarters_door','ship_boarding'):
+for key in ('medical_door','research_door','hq_door','supply_door','quarters_door','ship_boarding','provision_door','ruins_gate'):
     x,y=plan['landmarks'][key]
     assert collision[y*w+x]==0,('Blocked entrance',key)
     mid=gids[y*w+x]-1

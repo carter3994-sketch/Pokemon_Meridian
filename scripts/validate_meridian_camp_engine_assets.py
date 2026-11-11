@@ -73,7 +73,7 @@ enum_source = (ROOT / "include/constants/metatile_behaviors.h").read_text().spli
 door_behavior = re.findall(r"\bMB_[A-Z0-9_]+\b", enum_source).index("MB_NON_ANIMATED_DOOR")
 area = json.loads((ROOT / "data/maps/MeridianLandingCampPrototype/map.json").read_text())
 checked = []
-for landmark in ("medical_door", "research_door", "hq_door", "supply_door", "quarters_door", "ship_boarding"):
+for landmark in ("medical_door", "research_door", "hq_door", "supply_door", "quarters_door", "ship_boarding", "provision_door", "ruins_gate"):
     x, y = plan["landmarks"][landmark]
     assert (x, y) in reachable, f"Unreachable {landmark}"
     assert attrs[(words[y*w+x]&1023)//512][words[y*w+x]&511] & 255 == door_behavior, landmark

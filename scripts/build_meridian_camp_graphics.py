@@ -405,7 +405,7 @@ building_specs = (
     ("research_lab", 11, (72, 88), "research_door", 24),
     ("supply_depot", 12, (96, 64), "supply_door", 32),
     ("living_quarters", 4, (80, 48), "quarters_door", 24),
-    ("provision_store", 5, (64, 56), None, 24),
+    ("provision_store", 5, (64, 56), "provision_door", 24),
 )
 for asset, slot, size, landmark, door_px in building_specs:
     sprite = Image.open(ROOT/f"graphics/meridian/landing_camp/{asset}.png")
@@ -450,7 +450,7 @@ for qy in range(3):
 
 # Reference-based environment modules, with their own primary palette slots.
 env_specs=[("env_cliff_wall",0),("env_cliff_lip",0),("env_waterfall",1),
-           ("env_cave",2),("env_ruins",3),("env_stairs",0),("env_banner",7),("env_shore",1),("env_ocean",1)]
+           ("env_cave",2),("env_stairs",0),("env_banner",7),("env_shore",1),("env_ocean",1)]
 for asset,slot in env_specs:
     sprite=Image.open(ROOT/f"graphics/meridian/landing_camp/{asset}.png")
     assert sprite.mode=="P" and sprite.width%16==0 and sprite.height%16==0
@@ -481,6 +481,36 @@ for direction in ("north","south","east","west"):
     name=f"env_shore_{direction}"
     ART[name+"_alt"]=ART[name].transpose(Image.Transpose.FLIP_LEFT_RIGHT if direction in ("north","south") else Image.Transpose.FLIP_TOP_BOTTOM)
     module_slots[name+"_alt"]=1
+# Draw a layered sea cliff on top of the existing foamy waterline.
+# The rock silhouette stops above the foam rather than painting over it.
+for facing, rotation in (("east", None), ("north", Image.Transpose.ROTATE_90),
+                         ("south", Image.Transpose.ROTATE_270), ("west", Image.Transpose.ROTATE_180)):
+    for phase in range(2):
+        rock = ART[f"env_cliff_wall_0_{phase}"].copy()
+        for y in range(16):
+            width = (8, 8, 9, 9, 10, 10, 9, 9, 8, 8, 7, 7, 8, 9, 9, 8)[y]
+            if phase:
+                width = 17 - width
+            for x in range(16-width):
+                rock.putpixel((x,y), 0)
+        name = f"sea_cliff_{facing}_{phase}"
+        ART[name] = rock if rotation is None else rock.transpose(rotation)
+        module_slots[name] = 0
+        underlays[name] = f"env_shore_{facing}" + ("_alt" if phase else "")
+
+# Two small reef shapes reuse the cliff palette over ocean foam.
+for phase, outline in enumerate((
+    [(1,11),(4,8),(6,3),(11,2),(14,8),(14,12),(10,14),(4,14)],
+    [(2,10),(4,6),(8,5),(10,3),(13,6),(14,11),(10,13),(4,12)],
+)):
+    mask = Image.new("1", (16,16))
+    ImageDraw.Draw(mask).polygon(outline, fill=1)
+    name = f"sea_reef_{phase}"
+    rock = ART[f"env_cliff_wall_0_{phase}"].copy()
+    rock.paste(0, mask=Image.eval(mask.convert("L"), lambda value: 255-value))
+    ART[name] = rock
+    module_slots[name] = 0
+
 def dock_deck(name, phase, west, north, south):
     """Draw walkable decking with a short fascia above the water."""
     left = 3 if west else 0
@@ -502,6 +532,11 @@ def dock_deck(name, phase, west, north, south):
                 post = left + 2
                 draw.rectangle((post, 9, post + 2, 15), fill=6)
                 draw.line((post, 9, post + 1, 9), fill=5)
+                draw.point((post+1, 10), fill=8)
+        if north and phase == 1:
+            draw.rectangle((4, top, 7, top+4), fill=6)
+            draw.line((4, top, 7, top), fill=5)
+            draw.point((4, top+1), fill=8)
         if west:
             draw.line((left, top, left, bottom), fill=6)
             draw.line((left + 1, top, left + 1, bottom), fill=8)
@@ -566,19 +601,44 @@ for yy,row in enumerate(PLAN["rows"]):
         elif ch=="~":
             land=lambda x,y: 0<=x<W and 0<=y<H and PLAN["rows"][y][x] not in "~D"
             facing=next((direction for direction,x,y in (("north",xx,yy-1),("south",xx,yy+1),("east",xx+1,yy),("west",xx-1,yy)) if land(x,y)),None)
-            grid[yy][xx]=(f"env_shore_{facing}"+("_alt" if (xx+yy)%2 else "")) if facing else f"env_ocean_{xx%2+2*(yy%2)}"
+            phase = (xx+yy)%2
+            ocean = f"env_ocean_{xx%2+2*(yy%2)}"
+            if facing and yy >= 14 and xx < 15 and not (17 <= yy <= 22 and xx >= 10):
+                grid[yy][xx] = f"sea_cliff_{facing}_{phase}"
+            elif facing:
+                grid[yy][xx] = f"env_shore_{facing}" + ("_alt" if phase else "")
+            else:
+                grid[yy][xx] = ocean
+for x, y, phase in ((3,23,0),(8,25,1),(7,31,0),(9,36,1)):
+    name = f"sea_reef_{phase}_{x}_{y}"
+    source = f"sea_reef_{phase}"
+    ART[name] = ART[source]
+    module_slots[name] = 0
+    foam = ART[f"env_ocean_{x%2+2*(y%2)}"].copy()
+    draw = ImageDraw.Draw(foam)
+    draw.arc((1,5,15,15), 15, 165, fill=3)
+    draw.point((4,14),fill=1)
+    draw.point((12,14),fill=1)
+    ART[f"{name}_foam"] = foam
+    module_slots[f"{name}_foam"] = 1
+    underlays[name] = f"{name}_foam"
+    grid[y][x] = name
 def env_stamp(asset,ox,oy,width,height):
     for qy in range(height):
         for qx in range(width): grid[oy+qy][ox+qx]=f"{asset}_{qx}_{qy}"
-env_stamp("env_ruins",29,0,4,4)
 env_stamp("env_cave",43,8,3,3)
 cave_x, cave_y = PLAN["landmarks"]["cave_entrance"]
-# Extend the existing cliffside trail to the tile below the cave mouth.
-grid[cave_y+1][cave_x] = grid[cave_y+1][cave_x-1]
+# A two-tile climb opens onto a terrace in front of the cave mouth.
+# Keep the lower pool framed by cliff ledges and the cascade's own splash.
+for x in (41,42):
+    env_stamp("env_stairs",x,12,1,2)
+ruins_x, ruins_y = PLAN["landmarks"]["ruins_gate"]
+ART["ruins_trail_gate"] = ART["env_stairs_0_0"]
+module_slots["ruins_trail_gate"] = 0
+grid[ruins_y][ruins_x] = "ruins_trail_gate"
 for ox,oy in ((39,3),(39,11)):
     assert all(PLAN["rows"][y][x]=="^" for y in range(oy,oy+4) for x in range(ox,ox+2))
     env_stamp("env_waterfall",ox,oy,2,4)
-env_stamp("env_stairs",41,12,1,2)
 for ox in (24,31): env_stamp("env_banner",ox,11,1,2)
 
 # Compose overlapping tree crowns at native resolution, then compile their
@@ -661,18 +721,15 @@ for y, row in enumerate(PLAN["rows"]):
             collision["rows"][y][x] = "1"
         if cell == "T":
             collision["rows"][y][x] = "1" if (x, y) in forest_occupied else "0"
-for key in ("hq_door", "medical_door", "research_door", "supply_door", "quarters_door"):
+for key in ("hq_door", "medical_door", "research_door", "supply_door", "quarters_door", "provision_door"):
     dx, dy = PLAN["landmarks"][key]
     collision["rows"][dy][dx] = "0"
-# Environment footprint collisions: stairs and the ruins floor are traversable.
-for yy,row in enumerate(PLAN["rows"]):
-    for xx,ch in enumerate(row):
-        if ch=="R": collision["rows"][yy][xx]="0"
-for qy,row in enumerate(("1111","1001","1001","0000")):
-    for qx,value in enumerate(row): collision["rows"][qy][29+qx]=value
-for yy in (12,13): collision["rows"][yy][41]="0"
+# Walk the two-column stairs and the northern trail transfer.
+for y in (12,13):
+    for x in (41,42):
+        collision["rows"][y][x] = "0"
+collision["rows"][ruins_y][ruins_x] = "0"
 collision["rows"][cave_y][cave_x] = "0"
-collision["rows"][cave_y+1][cave_x] = "0"
 fire_x, fire_y = PLAN["landmarks"]["campfire"]
 collision["rows"][fire_y][fire_x] = "1"
 assert PLAN["landmarks"]["hq_door"]==[28,10]
