@@ -43,6 +43,8 @@ jobs:
           lines = [
               "## Meridian map registry audit",
               f"- Registered maps: {report['total_registered_maps']}",
+              f"- Static connections: {report['total_connections']}",
+              f"- Warps: {report['total_warps']} ({report['dynamic_warps_not_statically_resolved']} dynamic; runtime verification required)",
               f"- Registered layouts: {report['total_layouts']}",
               f"- Landing Camp name candidates: {len(report['landing_camp_candidates'])}",
               f"- Errors: {len(report['errors'])}",
