@@ -272,6 +272,9 @@ def build_camp_rooms(root):
     exit_types = {"threshold","ruin_exit"}
     enum = (root/"include/constants/metatile_behaviors.h").read_text().split("};",1)[0]
     warp_behavior = re.findall(r"\bMB_[A-Z0-9_]+\b",enum).index("MB_SOUTH_ARROW_WARP")
+    fieldmap = (root/"include/global.fieldmap.h").read_text()
+    shift = int(re.search(r"#define METATILE_ATTR_LAYER_SHIFT\s+(\d+)",fieldmap).group(1))
+    covered = 1 << shift
 
     atlas = Image.new("P",(128,256))
     atlas.putpalette([channel for i in range(16) for channel in (17*i,)*3])
@@ -299,7 +302,10 @@ def build_camp_rooms(root):
             meta.extend(pack_layer(*art[underlays[name]])+layer)
         else:
             meta.extend(layer+[512]*4)
-        attrs.append(warp_behavior if name in exit_types else 0)
+        behavior = warp_behavior if name in exit_types else 0
+        if name in underlays and name in walkable:
+            behavior |= covered
+        attrs.append(behavior)
 
     base = "data/tilesets/secondary/meridian_expedition_rooms/"
     dest = root/base
